@@ -19,6 +19,7 @@ library(knitr)
 library(tidyverse)
 library(xlsx)
 library(lmerTest)
+library(emmeans)
 ```
 
 ```{r functions, include=FALSE}
@@ -368,6 +369,34 @@ summary(model3)
 emtrends(model3, ~Percentile, var = "Self", at = list(Percentile = c(-1,0,1)))
 
 ```
+    
+```{r}
+# Model
+# Logit transform of Y: Other, because Other belongs to [0,1],
+# while the linear regression model do not guarantee the predictions lie within [0,1]
+# Therefore, we transform Y to expand the real line
+
+# Linear model: Logit(Others) = Baseline + (alpha+beta*Percentile)*Self 
+# Where: 
+# We have data: Others & Self
+# parameter: Baseline & Percentile
+# hyper parameter: alpha & beta
+
+# setting prior:
+# Pencentile ~ N(0.5,0.2^2)
+# Baseline ~ N(mu,2^2), mu = logit(1/m), m is number of options
+
+# Likelihood Function
+likelihood = function(param){
+  
+}
+
+
+# Metropolis-Hastings MCMC
+
+
+```
+
     
 ## Dataset 2: Abstract Reasoning (Raven's APM)
      

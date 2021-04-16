@@ -340,16 +340,16 @@ basicssum(SharedBelief)
 basicssum(SpecificPercentile)
 
 O_belief <- as.data.frame(SocialChosenBelief)
-O_belief$subid <- c(1:80)
-O_belief_l <- reshape(O_belief, varying = list(1:18), direction = "long")
+O_belief$subid <- c(1:nrow(O_belief))
+O_belief_l <- reshape(O_belief, varying = list(1:(ncol(O_belief) - 1)), direction = "long")
 
 S_belief <- as.data.frame(ChosenBelief)
-S_belief_l <- reshape(S_belief, varying = list(1:18), direction = "long")
+S_belief_l <- reshape(S_belief, varying = list(1:ncol(S_belief)), direction = "long")
 
 comb_data <- cbind(S_belief_l, O_belief_l)
 comb_data <- comb_data[, -c(3:5)]
 names(comb_data) <- c("Q", "Self", "Other", "Subject")
-comb_data$Percentile <- rep(SpecificPercentile, 18)
+comb_data$Percentile <- rep(SpecificPercentile, ncol(S_belief))
 
 model1 <- lmer(Other ~ Self + (1|Q) + (1|Subject), data = comb_data)
 summary(model1)
@@ -499,6 +499,34 @@ basicssum(BeliefaccuracyPercentile)
 basicssum(SharedBelief)
 basicssum(SpecificPercentile)
 
+O_belief <- as.data.frame(SocialChosenBelief)
+O_belief$subid <- c(1:nrow(O_belief))
+O_belief_l <- reshape(O_belief, varying = list(1:(ncol(O_belief) - 1)), direction = "long")
+
+S_belief <- as.data.frame(ChosenBelief)
+S_belief_l <- reshape(S_belief, varying = list(1:ncol(S_belief)), direction = "long")
+
+comb_data <- cbind(S_belief_l, O_belief_l)
+comb_data <- comb_data[, -c(3:5)]
+names(comb_data) <- c("Q", "Self", "Other", "Subject")
+comb_data$Percentile <- rep(SpecificPercentile, ncol(S_belief))
+
+model1 <- lmer(Other ~ Self + (1|Q) + (1|Subject), data = comb_data)
+summary(model1)
+
+model2 <- lmer(Other ~ Self * Percentile + (1|Q) + (1|Subject), data = comb_data)
+summary(model2)
+
+model3 <- lmer(Other ~ Self * Percentile + (Self|Q) + (Self|Subject), data = comb_data)
+summary(model3)
+
+comb_data[, c(2,3,5)] <- lapply(comb_data[, c(2,3,5)], scale)
+
+model3 <- lmer(Other ~ Self * Percentile + (Self|Q) + (Self|Subject), data = comb_data)
+summary(model3)
+
+emtrends(model3, ~Percentile, var = "Self", at = list(Percentile = c(-1,0,1)))
+
 ```
        
 ## Dataset 3: Global Literacy 
@@ -643,5 +671,33 @@ basicssum(AccuracyPercentile)
 basicssum(BeliefaccuracyPercentile)
 basicssum(SharedBelief)
 basicssum(SpecificPercentile)
+
+O_belief <- as.data.frame(SocialChosenBelief)
+O_belief$subid <- c(1:nrow(O_belief))
+O_belief_l <- reshape(O_belief, varying = list(1:(ncol(O_belief) - 1)), direction = "long")
+
+S_belief <- as.data.frame(ChosenBelief)
+S_belief_l <- reshape(S_belief, varying = list(1:ncol(S_belief)), direction = "long")
+
+comb_data <- cbind(S_belief_l, O_belief_l)
+comb_data <- comb_data[, -c(3:5)]
+names(comb_data) <- c("Q", "Self", "Other", "Subject")
+comb_data$Percentile <- rep(SpecificPercentile, ncol(S_belief))
+
+# model1 <- lmer(Other ~ Self + (1|Q) + (1|Subject), data = comb_data)
+# summary(model1)
+# 
+# model2 <- lmer(Other ~ Self * Percentile + (1|Q) + (1|Subject), data = comb_data)
+# summary(model2)
+# 
+# model3 <- lmer(Other ~ Self * Percentile + (Self|Q) + (Self|Subject), data = comb_data)
+# summary(model3)
+
+comb_data[, c(2,3,5)] <- lapply(comb_data[, c(2,3,5)], scale)
+
+model3 <- lmer(Other ~ Self * Percentile + (1|Q) + (Self|Subject), data = comb_data)
+summary(model3)
+
+emtrends(model3, ~Percentile, var = "Self", at = list(Percentile = c(-1,0,1)))
 
 ```

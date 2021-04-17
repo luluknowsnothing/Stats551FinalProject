@@ -1,0 +1,805 @@
+---
+title: "Stats 551 Data Pre-analysis"
+date: "3/22/2021"
+output: 
+  html_document
+    toc: true # show table of content
+    toc_depth: 2  # upto three depths of headings (specified by #, ## and ###)
+    toc_float: 
+      collapsed: false # float the table of contents to the left
+    number_sections: true  # number sections at each table header
+    theme: united  # theme option
+    highlight: tango  # specifies the syntax highlighting style
+---
+
+```{r setup, include=FALSE}
+# setup
+knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 3)
+library(knitr)
+library(tidyverse)
+library(xlsx)
+library(lmerTest)
+library(emmeans)
+```
+
+```{r functions, include=FALSE}
+# functions to get key variables
+
+# parameters required: 
+# dataframe: original data in the format of data frame, where nrow = samplesize
+# answertable: a m*n table of chosen answer for each response, 
+##             where m is sample size and n is number of questions. 
+# correctanswervector: a n-element vector of correct answers for n items.
+# belieflist: a list of assigned beliefs, list length = questionlength, 
+# #           list[i] is a nrow*ncol matrix of beliefs for question i, 
+##            nrow = samplesize, ncol= number of options for question i.  
+
+
+# Samplesize of the dataset
+samplesize <- function(dataframe){
+  size<-nrow(dataframe)
+  print(paste0('The dataset has SampleSize = ',size))
+  return(size)
+}
+
+# CorrectCheck: check the correctness of every response in an answertable, where 1 means correct and 0 means wrong.
+correctcheck <- function(answertable,correctanswervector){
+  row = nrow(answertable)
+  col= ncol(answertable)
+  check<-matrix(rep(NA,row*col),
+                nrow=row,ncol=col,
+                byrow=TRUE)
+  # let m be the row index and n be the column index of matrix check
+  for (m in 1:row){
+   for (n in 1:col){
+    check[m,n]<- ifelse(answertable[m,n]==correctanswervector[n],1,0)
+   }
+  }
+  return(check)
+}
+
+# correctbelief: a table of beliefs assigned to the correct answers, samplesize*questionsize.
+correctbelief<-function(belieflist, correctanswervector){
+  samplesize<-nrow(belieflist[[1]])
+  questionsize<-length(belieflist)
+  Correctbelief<-matrix(rep(NA,samplesize*questionsize),
+                nrow=samplesize,ncol=questionsize,
+                byrow=TRUE)
+  for (n in 1: questionsize){
+    for (m in 1: samplesize){
+      correctchoice <- correctanswervector[n]
+      Correctbelief[m,n]<-belieflist[[n]][m,correctchoice]
+    }
+  }
+  return(Correctbelief)
+  
+}
+
+# chosenbelief: a table of beliefs assigned to the chosen answer, samplesize*questionsize
+chosenbelief<-function(belieflist,answertable){
+  samplesize<-nrow(answertable)
+  questionsize<-ncol(answertable)
+  chosenbelief = matrix(rep(NA,samplesize*questionsize),
+                    nrow=samplesize,ncol=questionsize)
+  for (n in 1: questionsize){
+    for (m in 1: samplesize){
+      choice <- answertable[m,n]
+      chosenbelief[m,n]<-belieflist[[n]][m,choice]
+    }
+  }
+  return(chosenbelief)
+}
+
+
+# maxbelief: a table of maximum beliefs in each belief assignment for a question
+maxbelief<-function(belieflist){
+  samplesize<-nrow(belieflist[[1]])
+  questionsize<-length(belieflist)
+  maxbelief = matrix(rep(NA,samplesize*questionsize),
+                    nrow=samplesize,ncol=questionsize)
+  for (n in 1: questionsize){
+    for (m in 1: samplesize){
+      maxbelief[m,n]<-max(belieflist[[n]][m,])
+    }
+  }
+  return(maxbelief)
+}
+
+# Mismatch is matrix, recording the number of mismatch each participants have. If mismatch>=25% of total, the participant would be considered as inattentive and excluded from analysis.
+mismatch<-function(maxbelief,chosenbelief){
+  samplesize<-nrow(chosenbelief)
+  questionsize<-ncol(chosenbelief)  
+  MismatchTable<- matrix(rep(NA,samplesize*questionsize),
+                    nrow=samplesize,ncol=questionsize)
+  for (i in 1:samplesize) {
+    for (j in 1:questionsize) {
+      ifelse(chosenbelief[i,j]!=maxbelief[i,j],MismatchTable[i,j]<-1,MismatchTable[i,j]<-0)
+    }
+  }
+  Mismatch<-rowSums(MismatchTable)
+  exclude<- c();
+  for (i in 1:samplesize) {
+    if (Mismatch[i] >= questionsize/4){
+      exclude<-c(exclude,i)
+    }
+  }
+  print(paste0('participants have 25% or more mismatch that need to be excluded: ',exclude))
+  return(list(matrix(Mismatch,nrow=1,ncol=samplesize,byrow=TRUE),exclude))
+}
+
+
+#-----------------------------------------------------------------#
+# accuracy: binary coding (1 or 0) of correct vs. wrong
+accuracy <- function(correctcheck){
+  samplesize <- nrow(correctcheck)
+  questionsize <- ncol(correctcheck)
+  optionscore<- c(rep(0,samplesize))
+  for (m in 1:samplesize){
+   for (n in 1:questionsize){
+    optionscore[m]<- optionscore[m]+correctcheck[m,n]
+    }
+  } 
+  accuracy <- optionscore/questionsize
+  return(accuracy)
+}
+
+# belief accuracy: probabilistic coding of correctness
+beliefaccuracy<-function(correctbelief){
+  questionsize<-ncol(correctbelief)
+  beliefaccuracy<- rowSums(correctbelief)/(questionsize)
+  return(beliefaccuracy)
+}
+
+# itemwise confidence, or just confidence, the mean belief assigned to the chosen options.
+itemconfidence<-function(chosenbelief){
+  questionsize<-ncol(chosenbelief)
+  itemconfidence<-rowSums(chosenbelief)/(questionsize)
+  return(itemconfidence)
+}
+
+# Accuracy Percentile: performance percentile calculated by binary score
+accuracypercentile<-function(accuracy){
+  samplesize<-length(accuracy)
+  Apercent<-sapply(1:samplesize, function(x) 100*(rank(accuracy)[x]-1)/samplesize)
+  return(Apercent/100)
+}
+
+# Belief Accuracy Percentile: performance percentile calculated by probabilistic score
+beliefaccuracypercentile<-function(beliefaccuracy){
+  samplesize<-length(beliefaccuracy)
+  BApercent<-sapply(1:samplesize, function(x) 100*(rank(beliefaccuracy)[x]-1)/samplesize)
+  return(BApercent/100)
+}
+
+
+# basic stats for variables
+basicssum<-function(variable){
+  library(moments)
+  vname<-deparse(substitute(variable))
+  print(paste0('The variable ', vname, ' has a mean of ', mean(variable,na.rm=TRUE), 
+               ', a median of ', median(variable,na.rm=TRUE),
+               ', with sd of ', sd(variable,na.rm=TRUE),
+               '; a range of ', min(variable,na.rm=TRUE),' to ', max(variable,na.rm=TRUE),
+               '; a length of ', length(variable),
+               '; kurtosis is ', kurtosis(variable,na.rm=TRUE), 
+               '; skewness is ', skewness(variable,na.rm=TRUE)))
+  hist(variable, main= vname, xlab= vname)
+}
+
+```
+
+# Data Set Clean Up
+      
+## Dataset 1: Health Care Policy (ACA)
+     
+```{r, echo=FALSE, cache=TRUE}
+# Data Entry
+Mydataf <- read.xlsx("ACAData.xlsx",1,header=TRUE, to.data.frame = TRUE)
+
+#----------------------------------------------------------------------#
+#----------------------------------------------------------------------#
+
+# PART II A: Data exclusion
+# Correct Answers of the questionnaire
+correctanswervector <- c(2,2,1,2,1,1,2,2,1,1,1,1,1,2,1,2,2,2) # correct answers
+
+# AnswerTable:a SampleSize*18 table contains the chosen options for each quetion and each participant
+answertable <- cbind(Mydataf$Q1,Mydataf$Q2,Mydataf$Q3,Mydataf$Q4,
+                     Mydataf$Q5,Mydataf$Q6,Mydataf$Q7,Mydataf$Q8,
+                     Mydataf$Q9,Mydataf$Q10,Mydataf$Q11,Mydataf$Q12,
+                     Mydataf$Q13,Mydataf$Q14,Mydataf$Q15,Mydataf$Q16,
+                     Mydataf$Q17,Mydataf$Q18)
+
+# make sure the answers are in numeric format
+axh <- matrix(rep(0,nrow(answertable)*ncol(answertable)),nrow=nrow(answertable),ncol=ncol(answertable))
+for (i in 1: nrow(answertable)){
+  for (j in 1:ncol(answertable)){
+    a <- answertable[i,j]
+    axh[i,j] <- as.numeric(a)
+  }
+}
+answertable <- axh
+
+# Belieflist, each list element contains a samplesize*optionsize table recording beliefs
+Belief1<- cbind(Mydataf$Q1B1,Mydataf$Q1B2)/100
+Belief2<- cbind(Mydataf$Q2B1,Mydataf$Q2B2)/100
+Belief3<- cbind(Mydataf$Q3B1,Mydataf$Q3B2)/100
+Belief4<- cbind(Mydataf$Q4B1,Mydataf$Q4B2)/100
+Belief5<- cbind(Mydataf$Q5B1,Mydataf$Q5B2)/100
+Belief6<- cbind(Mydataf$Q6B1,Mydataf$Q6B2)/100
+Belief7<- cbind(Mydataf$Q7B1,Mydataf$Q7B2)/100
+Belief8<- cbind(Mydataf$Q8B1,Mydataf$Q8B2)/100
+Belief9<- cbind(Mydataf$Q9B1,Mydataf$Q9B2)/100
+Belief10<- cbind(Mydataf$Q10B1,Mydataf$Q10B2)/100
+Belief11<- cbind(Mydataf$Q11B1,Mydataf$Q11B2)/100
+Belief12<- cbind(Mydataf$Q12B1,Mydataf$Q12B2)/100
+Belief13<- cbind(Mydataf$Q13B1,Mydataf$Q11B2)/100
+Belief14<- cbind(Mydataf$Q14B1,Mydataf$Q14B2)/100
+Belief15<- cbind(Mydataf$Q15B1,Mydataf$Q15B2)/100
+Belief16<- cbind(Mydataf$Q16B1,Mydataf$Q16B2)/100
+Belief17<- cbind(Mydataf$Q17B1,Mydataf$Q17B2)/100
+Belief18<- cbind(Mydataf$Q18B1,Mydataf$Q18B2)/100
+belieflist<-list(Belief1,Belief2,Belief3,Belief4,Belief5,Belief6,Belief7,Belief8,Belief9,Belief10,Belief11,Belief12,Belief13,Belief14,Belief15,Belief16,Belief17,Belief18)
+
+
+# Data exclusion: exclude inattentive participants. If the chosen choice has not the maximum probability assigned, this counts as a mismatch. If a participant has equal or more than 25% of answers appear to be mismatch, this participant is regarded as an inattentive participant, and will be excluded from analysis.
+ChosenBelief<-chosenbelief(belieflist,answertable)
+MaximumBelief<-maxbelief(belieflist)
+exclude<-mismatch(MaximumBelief,ChosenBelief)
+
+#----------------------------------------------------------------------#
+
+# PART II B: Data Management and Important Variable Set up
+## Mydataf after Excluding SubNum 97-101 (who failed to finish the questionnaire) and inattentive participants: 8(6),12(4),29(8),30(8),54(4),64(4)
+Mydataf<-Mydataf[-exclude[[2]],]
+# answertable after exlucsion:
+answertable<-answertable[-exclude[[2]],]
+# belieflist after exclusion: (Mydataf is overrided)
+Belief1<- cbind(Mydataf$Q1B1,Mydataf$Q1B2)/100
+Belief2<- cbind(Mydataf$Q2B1,Mydataf$Q2B2)/100
+Belief3<- cbind(Mydataf$Q3B1,Mydataf$Q3B2)/100
+Belief4<- cbind(Mydataf$Q4B1,Mydataf$Q4B2)/100
+Belief5<- cbind(Mydataf$Q5B1,Mydataf$Q5B2)/100
+Belief6<- cbind(Mydataf$Q6B1,Mydataf$Q6B2)/100
+Belief7<- cbind(Mydataf$Q7B1,Mydataf$Q7B2)/100
+Belief8<- cbind(Mydataf$Q8B1,Mydataf$Q8B2)/100
+Belief9<- cbind(Mydataf$Q9B1,Mydataf$Q9B2)/100
+Belief10<- cbind(Mydataf$Q10B1,Mydataf$Q10B2)/100
+Belief11<- cbind(Mydataf$Q11B1,Mydataf$Q11B2)/100
+Belief12<- cbind(Mydataf$Q12B1,Mydataf$Q12B2)/100
+Belief13<- cbind(Mydataf$Q13B1,Mydataf$Q11B2)/100
+Belief14<- cbind(Mydataf$Q14B1,Mydataf$Q14B2)/100
+Belief15<- cbind(Mydataf$Q15B1,Mydataf$Q15B2)/100
+Belief16<- cbind(Mydataf$Q16B1,Mydataf$Q16B2)/100
+Belief17<- cbind(Mydataf$Q17B1,Mydataf$Q17B2)/100
+Belief18<- cbind(Mydataf$Q18B1,Mydataf$Q18B2)/100
+belieflist<-list(Belief1,Belief2,Belief3,Belief4,Belief5,Belief6,Belief7,Belief8,Belief9,Belief10,Belief11,Belief12,Belief13,Belief14,Belief15,Belief16,Belief17,Belief18)
+# chosenbelief after exclusion
+ChosenBelief<-ChosenBelief[-exclude[[2]],]
+# maximumBelief after exclusion
+MaximumBelief<-MaximumBelief[-exclude[[2]],]
+# transform correctness of each response into binary values where 1 means correct and 0 means wrong.
+CorrectCheck<-correctcheck(answertable,correctanswervector)
+# beliefs assigned to the correct choices of each question each participant
+CorrectBelief<-correctbelief(belieflist,correctanswervector)
+
+# KEY VARIABLES
+SampleSize<-samplesize(Mydataf) # samplesize
+Accuracy<-accuracy(CorrectCheck) # accuracy
+BeliefAccuracy<-beliefaccuracy(CorrectBelief) # beliefaccuracy
+Confidence<-itemconfidence(ChosenBelief) # item-wise confidence
+QuestionSize <- ncol(CorrectCheck) # number of questions
+OverallConfidence<-Mydataf$EstimatedNumCorrect/QuestionSize # overall confidence (global confidence)
+#----------------------------------------------------------------------#
+
+# variable basic info 
+basicssum(Accuracy)
+basicssum(BeliefAccuracy)
+basicssum(Confidence)
+basicssum(OverallConfidence)
+
+# Pearson's correlation between two accuracy measures
+print(paste0("The Pearson's correlaiton between accuracy and binary accuracy: "))
+cor.test(Accuracy,BeliefAccuracy)
+
+#----------------------------------------------------------------------#
+## Beliefs in Social Comparison
+SocialBelief1<- cbind(Mydataf$Q1O1,Mydataf$Q1O2)/100
+SocialBelief2<- cbind(Mydataf$Q2O1,Mydataf$Q2O2)/100
+SocialBelief3<- cbind(Mydataf$Q3O1,Mydataf$Q3O2)/100
+SocialBelief4<- cbind(Mydataf$Q4O1,Mydataf$Q4O2)/100
+SocialBelief5<- cbind(Mydataf$Q5O1,Mydataf$Q5O2)/100
+SocialBelief6<- cbind(Mydataf$Q6O1,Mydataf$Q6O2)/100
+SocialBelief7<- cbind(Mydataf$Q7O1,Mydataf$Q7O2)/100
+SocialBelief8<- cbind(Mydataf$Q8O1,Mydataf$Q8O2)/100
+SocialBelief9<- cbind(Mydataf$Q9O1,Mydataf$Q9O2)/100
+SocialBelief10<-cbind(Mydataf$Q10O1,Mydataf$Q10O2)/100
+SocialBelief11<- cbind(Mydataf$Q11O1,Mydataf$Q11O2)/100
+SocialBelief12<- cbind(Mydataf$Q12O1,Mydataf$Q12O2)/100
+SocialBelief13<- cbind(Mydataf$Q13O1,Mydataf$Q13O2)/100
+SocialBelief14<- cbind(Mydataf$Q14O1,Mydataf$Q14O2)/100
+SocialBelief15<- cbind(Mydataf$Q15O1,Mydataf$Q15O2)/100
+SocialBelief16<- cbind(Mydataf$Q16O1,Mydataf$Q16O2)/100
+SocialBelief17<- cbind(Mydataf$Q17O1,Mydataf$Q17O2)/100
+SocialBelief18<- cbind(Mydataf$Q18O1,Mydataf$Q18O2)/100
+socialbelieflist<-list(SocialBelief1,SocialBelief2,SocialBelief3,SocialBelief4,SocialBelief5,SocialBelief6,SocialBelief7,SocialBelief8,SocialBelief9,SocialBelief10,SocialBelief11,SocialBelief12,SocialBelief13,SocialBelief14,SocialBelief15,SocialBelief16,SocialBelief17,SocialBelief18)
+
+# beliefs about other people choosing the correct choice for each question each participant
+SocialCorrectBelief<-correctbelief(socialbelieflist,correctanswervector)
+# beliefs about other people choosing the choice the participant chose for each question each participant
+SocialChosenBelief<-chosenbelief(socialbelieflist,answertable)
+# key variables
+AccuracyPercentile<-accuracypercentile(Accuracy) # actual performance percentile by binary score
+BeliefaccuracyPercentile<-beliefaccuracypercentile(BeliefAccuracy) # actual performance percentile by probabilistic score
+SharedBelief <- beliefaccuracy(SocialChosenBelief) # mean beliefs in other people choosing the same answer as I did
+SpecificPercentile<-Mydataf$SpecificPercentile/100 # estimate of one's performance relative to others in percentile on the specific questionnaire
+
+# variable basic info
+basicssum(AccuracyPercentile)
+basicssum(BeliefaccuracyPercentile)
+basicssum(SharedBelief)
+basicssum(SpecificPercentile)
+
+O_belief <- as.data.frame(SocialChosenBelief)
+O_belief$subid <- c(1:nrow(O_belief))
+O_belief_l <- reshape(O_belief, varying = list(1:(ncol(O_belief) - 1)), direction = "long")
+
+S_belief <- as.data.frame(ChosenBelief)
+S_belief_l <- reshape(S_belief, varying = list(1:ncol(S_belief)), direction = "long")
+
+comb_data <- cbind(S_belief_l, O_belief_l)
+comb_data <- comb_data[, -c(3:5)]
+names(comb_data) <- c("Q", "Self", "Other", "Subject")
+comb_data$Percentile <- rep(SpecificPercentile, ncol(S_belief))
+
+model1 <- lmer(Other ~ Self + (1|Q) + (1|Subject), data = comb_data)
+summary(model1)
+
+model2 <- lmer(Other ~ Self * Percentile + (1|Q) + (1|Subject), data = comb_data)
+summary(model2)
+
+model3 <- lmer(Other ~ Self * Percentile + (Self|Q) + (Self|Subject), data = comb_data)
+summary(model3)
+
+comb_data[, c(2,3,5)] <- lapply(comb_data[, c(2,3,5)], scale)
+
+model3 <- lmer(Other ~ Self * Percentile + (Self|Q) + (Self|Subject), data = comb_data)
+summary(model3)
+
+# emtrends(model3, ~Percentile, var = "Self", at = list(Percentile = c(-1,0,1)))
+
+```
+    
+```{r}
+# Model
+# Logit transform of Y: Other, because Other belongs to [0,1],
+# while the linear regression model do not guarantee the predictions lie within [0,1]
+# Therefore, we transform Y to expand the real line
+
+# Linear model: Logit(Others) = Baseline + (alpha+beta*Percentile)*Self 
+# Where: 
+# We have data: Others & Self
+# parameter: Baseline & Percentile
+# hyper parameter: alpha & beta
+
+# setting prior:
+# Pencentile ~ N(0.5,0.2^2)
+# Baseline ~ N(mu,2^2), mu = logit(1/m), m is number of options
+
+# Likelihood Function
+likelihood <- function(x, y, base, alpha, beta, theta, sd){
+  pred <- base + x * (alpha + beta * theta)
+  ll_vec <- dnorm(y, mean = pred, sd = sd, log = T)
+  sum_ll <- sum(ll_vec)
+  return(sum_ll)
+}
+
+# Prior function
+prior <- function(base, theta, sd, option){
+  base_mu <- 1/option
+  base_prior <- dnorm(base, mean = base_mu, sd = 2, log = T)
+  theta_prior <- dnorm(theta, mean = 0.5, sd = 0.2, log = T)
+  sd_prior <- dunif(sd, min=0, max=1)
+  sum_prior <- base_prior + theta_prior + sd_prior
+  return(sum_prior)
+}
+
+#Posterior function
+post <- function(x, y, base, alpha, beta, theta, sd, option){
+  return(likelihood(x, y, base, alpha, beta, theta, sd) + prior(base, theta, sd, option))
+}
+
+# Metropolis-Hastings MCMC
+proposalfunction <- function(param){
+    return(rnorm(3, mean = param, sd= c(0.10,0.10,0.01)))
+}
+ 
+run_metropolis_MCMC <- function(startvalue, iterations, x, y, alpha, beta, option){
+    chain <- array(dim = c(iterations+1, 3))
+    chain[1,] <- startvalue
+    for (i in 1:iterations){
+        proposal <- proposalfunction(chain[i,])
+        base_pro <- proposal[1]
+        theta_pro <- proposal[2]
+        sd_pro <- proposal[3]
+ 
+        probab <- exp(post(x, y, base_pro, alpha, beta, theta_pro, sd_pro, option) - 
+                        post(x, y, chain[i,1], alpha, beta, chain[i,2], chain[i,3], option))
+        if (is.na(probab)){
+          print(post(x, y, base_pro, alpha, beta, theta_pro, sd_pro, option))
+          print(post(x, y, chain[i,1], alpha, beta, chain[i,2], chain[i,3], option))
+        }
+        if (runif(1) < probab){
+            chain[i+1,] <- proposal
+        }else{
+            chain[i+1,] <- chain[i,]
+        }
+    }
+    return(chain)
+}
+
+x <- comb_data[comb_data$Subject == 28, "Self"]
+y <- comb_data[comb_data$Subject == 28, "Other"]
+startvalue <- c(0.5, 0.5, 0.5)
+
+c <- run_metropolis_MCMC(startvalue, 5000, x, y, 0.8, -0.3, 4)
+
+subj_chain <- function(startvalue, iterations, my_data, alpha, beta, option, n){
+  all_chain <- array(dim = c(iterations+1, 3, n))
+  
+  for (i in 1:n){
+    print(i)
+    x <- my_data[my_data$Subject == i, "Self"]
+    y <- my_data[my_data$Subject == i, "Other"]
+    if (length(unique(x)) != 1){
+      all_chain[,,i] <- run_metropolis_MCMC(startvalue, iterations, x, y, alpha, beta, option)
+    }
+    
+  }
+  return(all_chain)
+}
+
+
+data1_chains <- subj_chain(startvalue, 10000, comb_data, 0.8, -0.3, 2, 80)
+
+find_hyperp <- function(alpha_vec, beta_vec){
+  
+}
+
+
+
+```
+
+    
+## Dataset 2: Abstract Reasoning (Raven's APM) (note: remove 28, 29)
+     
+```{r, echo=FALSE, cache=TRUE}
+# PART I: Data Entry
+Mydataf <- read.xlsx("RavenData.xlsx",1,header=TRUE, to.data.frame = TRUE)
+
+#----------------------------------------------------------------------#
+#----------------------------------------------------------------------#
+
+# PART II A: Data exclusion
+# Correct Answers of the questionnaire
+correctanswervector <- c(1,3,2,2,1,3,2,4,4,2,2,1) # correct answers
+
+# AnswerTable:a SampleSize*12 table contains the chosen options for each quetion and each participant
+answertable <- cbind(Mydataf$Q1,Mydataf$Q2,Mydataf$Q3,Mydataf$Q4,Mydataf$Q5,
+                     Mydataf$Q6,Mydataf$Q7,Mydataf$Q8,Mydataf$Q9,Mydataf$Q10,
+                     Mydataf$Q11,Mydataf$Q12)
+
+# make sure the answers are in numeric format
+axh <- matrix(rep(0,nrow(answertable)*ncol(answertable)),nrow=nrow(answertable),ncol=ncol(answertable))
+for (i in 1: nrow(answertable)){
+  for (j in 1:ncol(answertable)){
+    a <- answertable[i,j]
+    axh[i,j] <- as.numeric(a)
+  }
+}
+answertable <- axh
+
+# Belieflist
+Belief1<- cbind(Mydataf$Q1B1,Mydataf$Q1B2,Mydataf$Q1B3,Mydataf$Q1B4)/100
+Belief2<- cbind(Mydataf$Q2B1,Mydataf$Q2B2,Mydataf$Q2B3,Mydataf$Q2B4)/100
+Belief3<- cbind(Mydataf$Q3B1,Mydataf$Q3B2,Mydataf$Q3B3,Mydataf$Q3B4)/100
+Belief4<- cbind(Mydataf$Q4B1,Mydataf$Q4B2,Mydataf$Q4B3,Mydataf$Q4B4)/100
+Belief5<- cbind(Mydataf$Q5B1,Mydataf$Q5B2,Mydataf$Q5B3,Mydataf$Q5B4)/100
+Belief6<- cbind(Mydataf$Q6B1,Mydataf$Q6B2,Mydataf$Q6B3,Mydataf$Q6B4)/100
+Belief7<- cbind(Mydataf$Q7B1,Mydataf$Q7B2,Mydataf$Q7B3,Mydataf$Q7B4)/100
+Belief8<- cbind(Mydataf$Q8B1,Mydataf$Q8B2,Mydataf$Q8B3,Mydataf$Q8B4)/100
+Belief9<- cbind(Mydataf$Q9B1,Mydataf$Q9B2,Mydataf$Q9B3,Mydataf$Q9B4)/100
+Belief10<- cbind(Mydataf$Q10B1,Mydataf$Q10B2,Mydataf$Q10B3,Mydataf$Q10B4)/100
+Belief11<- cbind(Mydataf$Q11B1,Mydataf$Q11B2,Mydataf$Q11B3,Mydataf$Q11B4)/100
+Belief12<- cbind(Mydataf$Q12B1,Mydataf$Q12B2,Mydataf$Q12B3,Mydataf$Q12B4)/100
+belieflist<-list(Belief1,Belief2,Belief3,Belief4,Belief5,Belief6,Belief7,Belief8,Belief9,Belief10,Belief11,Belief12)
+
+# Data exclusion: exclude inattentive participants. If the chosen choice has not the maximum probability assigned, this counts as a mismatch. If a participant has equal or more than 25% of answers appear to be mismatch, this participant is regarded as an inattentive participant, and will be excluded from analysis.
+ChosenBelief<-chosenbelief(belieflist,answertable)
+MaximumBelief<-maxbelief(belieflist)
+exclude<-mismatch(MaximumBelief,ChosenBelief)
+
+#----------------------------------------------------------------------#
+
+# PART II B: Data Management and Important Variable Set up
+## Mydataf after Excluding SubNum 97-101 (who failed to finish the questionnaire) and inattentional participants: 8(6),12(4),29(8),30(8),54(4),64(4)
+Mydataf<-Mydataf[-exclude[[2]],]
+# answertable after exlucsion:
+answertable<-answertable[-exclude[[2]],]
+# belieflist after exclusion: (Mydataf is overrided)
+Belief1<- cbind(Mydataf$Q1B1,Mydataf$Q1B2,Mydataf$Q1B3,Mydataf$Q1B4)/100
+Belief2<- cbind(Mydataf$Q2B1,Mydataf$Q2B2,Mydataf$Q2B3,Mydataf$Q2B4)/100
+Belief3<- cbind(Mydataf$Q3B1,Mydataf$Q3B2,Mydataf$Q3B3,Mydataf$Q3B4)/100
+Belief4<- cbind(Mydataf$Q4B1,Mydataf$Q4B2,Mydataf$Q4B3,Mydataf$Q4B4)/100
+Belief5<- cbind(Mydataf$Q5B1,Mydataf$Q5B2,Mydataf$Q5B3,Mydataf$Q5B4)/100
+Belief6<- cbind(Mydataf$Q6B1,Mydataf$Q6B2,Mydataf$Q6B3,Mydataf$Q6B4)/100
+Belief7<- cbind(Mydataf$Q7B1,Mydataf$Q7B2,Mydataf$Q7B3,Mydataf$Q7B4)/100
+Belief8<- cbind(Mydataf$Q8B1,Mydataf$Q8B2,Mydataf$Q8B3,Mydataf$Q8B4)/100
+Belief9<- cbind(Mydataf$Q9B1,Mydataf$Q9B2,Mydataf$Q9B3,Mydataf$Q9B4)/100
+Belief10<- cbind(Mydataf$Q10B1,Mydataf$Q10B2,Mydataf$Q10B3,Mydataf$Q10B4)/100
+Belief11<- cbind(Mydataf$Q11B1,Mydataf$Q11B2,Mydataf$Q11B3,Mydataf$Q11B4)/100
+Belief12<- cbind(Mydataf$Q12B1,Mydataf$Q12B2,Mydataf$Q12B3,Mydataf$Q12B4)/100
+belieflist<-list(Belief1,Belief2,Belief3,Belief4,Belief5,Belief6,Belief7,Belief8,Belief9,Belief10,Belief11,Belief12)
+
+# chosenbelief after exclusion
+ChosenBelief<-ChosenBelief[-exclude[[2]],]
+# maximumBelief after exclusion
+MaximumBelief<-MaximumBelief[-exclude[[2]],]
+# transform correctness of each response into binary values where 1 means correct and 0 means wrong.
+CorrectCheck<-correctcheck(answertable,correctanswervector)
+# beliefs assigned to the correct choices of each question each participant
+CorrectBelief<-correctbelief(belieflist,correctanswervector)
+#----------------------------------------------------------------------#
+
+# KEY VARIABLES
+SampleSize<-samplesize(Mydataf) # samplesize
+Accuracy<-accuracy(CorrectCheck) # accuracy
+BeliefAccuracy<-beliefaccuracy(CorrectBelief) # beliefaccuracy
+Confidence<-itemconfidence(ChosenBelief) # item-wise confidence
+QuestionSize <- ncol(CorrectCheck) # number of questions
+OverallConfidence<-Mydataf$EstimatedNumCorrect/QuestionSize # overall confidence
+#----------------------------------------------------------------------#
+# a summary of variables
+basicssum(Accuracy)
+basicssum(BeliefAccuracy)
+basicssum(Confidence)
+basicssum(OverallConfidence)
+
+# Pearson's correlation
+print(paste0("The Pearson's correlaiton between accuracy and binary accuracy: "))
+cor.test(Accuracy,BeliefAccuracy)
+
+#----------------------------------------------------------------------#
+## Beliefs in Social Comparison
+SocialBelief1<- cbind(Mydataf$Q1O1,Mydataf$Q1O2,Mydataf$Q1O3,Mydataf$Q1O4)/100
+SocialBelief2<- cbind(Mydataf$Q2O1,Mydataf$Q2O2,Mydataf$Q2O3,Mydataf$Q2O4)/100
+SocialBelief3<- cbind(Mydataf$Q3O1,Mydataf$Q3O2,Mydataf$Q3O3,Mydataf$Q3O4)/100
+SocialBelief4<- cbind(Mydataf$Q4O1,Mydataf$Q4O2,Mydataf$Q4O3,Mydataf$Q4O4)/100
+SocialBelief5<- cbind(Mydataf$Q5O1,Mydataf$Q5O2,Mydataf$Q5O3,Mydataf$Q5O4)/100
+SocialBelief6<- cbind(Mydataf$Q6O1,Mydataf$Q6O2,Mydataf$Q6O3,Mydataf$Q6O4)/100
+SocialBelief7<- cbind(Mydataf$Q7O1,Mydataf$Q7O2,Mydataf$Q7O3,Mydataf$Q7O4)/100
+SocialBelief8<- cbind(Mydataf$Q8O1,Mydataf$Q8O2,Mydataf$Q8O3,Mydataf$Q8O4)/100
+SocialBelief9<- cbind(Mydataf$Q9O1,Mydataf$Q9O2,Mydataf$Q9O3,Mydataf$Q9O4)/100
+SocialBelief10<- cbind(Mydataf$Q10O1,Mydataf$Q10O2,Mydataf$Q10O3,Mydataf$Q10O4)/100
+SocialBelief11<- cbind(Mydataf$Q11O1,Mydataf$Q11O2,Mydataf$Q11O3,Mydataf$Q11O4)/100
+SocialBelief12<- cbind(Mydataf$Q12O1,Mydataf$Q12O2,Mydataf$Q12O3,Mydataf$Q12O4)/100
+socialbelieflist<-list(SocialBelief1,SocialBelief2,SocialBelief3,SocialBelief4,SocialBelief5,SocialBelief6,SocialBelief7,SocialBelief8,SocialBelief9,SocialBelief10,SocialBelief11,SocialBelief12)
+
+# beliefs about other people choosing the correct choice for each question each participant
+SocialCorrectBelief<-correctbelief(socialbelieflist,correctanswervector)
+# beliefs about other people choosing the choice the participant chose for each question each participant
+SocialChosenBelief<-chosenbelief(socialbelieflist,answertable)
+# key variables
+AccuracyPercentile<-accuracypercentile(Accuracy) # actual performance percentile by binary score
+BeliefaccuracyPercentile<-beliefaccuracypercentile(BeliefAccuracy) # actual performance percentile by probabilistic score
+SharedBelief <- beliefaccuracy(SocialChosenBelief) # mean beliefs in other people choosing the same answer as I did
+SpecificPercentile<-Mydataf$SpecificPercentile/100 # estimate of one's performance relative to others in percentile on the specific questionnaire
+
+# variable basic info
+basicssum(AccuracyPercentile)
+basicssum(BeliefaccuracyPercentile)
+basicssum(SharedBelief)
+basicssum(SpecificPercentile)
+
+O_belief <- as.data.frame(SocialChosenBelief)
+O_belief$subid <- c(1:nrow(O_belief))
+O_belief_l <- reshape(O_belief, varying = list(1:(ncol(O_belief) - 1)), direction = "long")
+
+S_belief <- as.data.frame(ChosenBelief)
+S_belief_l <- reshape(S_belief, varying = list(1:ncol(S_belief)), direction = "long")
+
+comb_data <- cbind(S_belief_l, O_belief_l)
+comb_data <- comb_data[, -c(3:5)]
+names(comb_data) <- c("Q", "Self", "Other", "Subject")
+comb_data$Percentile <- rep(SpecificPercentile, ncol(S_belief))
+
+model1 <- lmer(Other ~ Self + (1|Q) + (1|Subject), data = comb_data)
+summary(model1)
+
+model2 <- lmer(Other ~ Self * Percentile + (1|Q) + (1|Subject), data = comb_data)
+summary(model2)
+
+model3 <- lmer(Other ~ Self * Percentile + (Self|Q) + (Self|Subject), data = comb_data)
+summary(model3)
+
+comb_data[, c(2,3,5)] <- lapply(comb_data[, c(2,3,5)], scale)
+
+model3 <- lmer(Other ~ Self * Percentile + (Self|Q) + (Self|Subject), data = comb_data)
+summary(model3)
+
+# emtrends(model3, ~Percentile, var = "Self", at = list(Percentile = c(-1,0,1)))
+
+```
+       
+## Dataset 3: Global Literacy 
+     
+```{r, echo=FALSE, cache=TRUE}
+# Part I: Data Entry
+# read data
+Mydataf <- read.xlsx("GlobalLiteracy_clean.xlsx",1,header=TRUE, to.data.frame = TRUE)
+
+#----------------------------------------------------------------------#
+#----------------------------------------------------------------------#
+
+# PART II A: Data exclusion
+# Correct Answers of the questionnaire
+correctanswervector <- c(3,2,3,4,2,1,4,2,1,2,1,1,4,2,2,2) # correct answers
+
+# AnswerTable:a SampleSize*16 table contains the chosen options for each quetions and each participant
+answertable <- cbind(Mydataf$Q1,Mydataf$Q2,Mydataf$Q3,Mydataf$Q4,
+                     Mydataf$Q5,Mydataf$Q6,Mydataf$Q7,Mydataf$Q8,
+                     Mydataf$Q9,Mydataf$Q10,Mydataf$Q11,Mydataf$Q12,
+                     Mydataf$Q13,Mydataf$Q14,Mydataf$Q15,Mydataf$Q16)
+
+# make sure the answers are in numeric format
+axh <- matrix(rep(0,nrow(answertable)*ncol(answertable)),nrow=nrow(answertable),ncol=ncol(answertable))
+for (i in 1: nrow(answertable)){
+  for (j in 1:ncol(answertable)){
+    a <- answertable[i,j]
+    axh[i,j] <- as.numeric(a)
+  }
+}
+answertable <- axh
+
+# Belieflist
+Belief1<- cbind(Mydataf$Q1B1,Mydataf$Q1B2,Mydataf$Q1B3,Mydataf$Q1B4)/100
+Belief2<- cbind(Mydataf$Q2B1,Mydataf$Q2B2,Mydataf$Q2B3,Mydataf$Q2B4)/100
+Belief3<- cbind(Mydataf$Q3B1,Mydataf$Q3B2,Mydataf$Q3B3,Mydataf$Q3B4)/100
+Belief4<- cbind(Mydataf$Q4B1,Mydataf$Q4B2,Mydataf$Q4B3,Mydataf$Q4B4)/100
+Belief5<- cbind(Mydataf$Q5B1,Mydataf$Q5B2,Mydataf$Q5B3,Mydataf$Q5B4)/100
+Belief6<- cbind(Mydataf$Q6B1,Mydataf$Q6B2,Mydataf$Q6B3,Mydataf$Q6B4)/100
+Belief7<- cbind(Mydataf$Q7B1,Mydataf$Q7B2,Mydataf$Q7B3,Mydataf$Q7B4)/100
+Belief8<- cbind(Mydataf$Q8B1,Mydataf$Q8B2,Mydataf$Q8B3,Mydataf$Q8B4)/100
+Belief9<- cbind(Mydataf$Q9B1,Mydataf$Q9B2,Mydataf$Q9B3,Mydataf$Q9B4)/100
+Belief10<- cbind(Mydataf$Q10B1,Mydataf$Q10B2,Mydataf$Q10B3,Mydataf$Q10B4)/100
+Belief11<- cbind(Mydataf$Q11B1,Mydataf$Q11B2,Mydataf$Q11B3,Mydataf$Q11B4)/100
+Belief12<- cbind(Mydataf$Q12B1,Mydataf$Q12B2,Mydataf$Q12B3,Mydataf$Q12B4)/100
+Belief13<- cbind(Mydataf$Q13B1,Mydataf$Q13B2,Mydataf$Q13B3,Mydataf$Q13B4)/100
+Belief14<- cbind(Mydataf$Q14B1,Mydataf$Q14B2,Mydataf$Q14B3,Mydataf$Q14B4)/100
+Belief15<- cbind(Mydataf$Q15B1,Mydataf$Q15B2,Mydataf$Q15B3,Mydataf$Q15B4)/100
+Belief16<- cbind(Mydataf$Q16B1,Mydataf$Q16B2,Mydataf$Q16B3,Mydataf$Q16B4)/100
+belieflist<-list(Belief1,Belief2,Belief3,Belief4,Belief5,Belief6,Belief7,Belief8,Belief9,Belief10,Belief11,Belief12,Belief13,Belief14,Belief15,Belief16)
+
+# Data exclusion: exclude inattentive participants. If the chosen choice has not the maximum probability assigned, this counts as a mismatch. If a participant has equal or more than 25% of answers appear to be mismatch, this participant is regarded as an inattentive participant, and will be excluded from analysis.
+ChosenBelief<-chosenbelief(belieflist,answertable)
+MaximumBelief<-maxbelief(belieflist)
+exclude<-mismatch(MaximumBelief,ChosenBelief)
+
+#----------------------------------------------------------------------#
+
+# PART II B: Data Management and Important Variable Set up
+## Mydataf after Excluding SubNum 97-101 (who failed to finish the questionnaire) and inattentional participants: 8(6),12(4),29(8),30(8),54(4),64(4)
+Mydataf<-Mydataf[-exclude[[2]],]
+# answertable after exclusion:
+answertable<-answertable[-exclude[[2]],]
+# belieflist after exclusion: (Mydataf is overrode)
+Belief1<- cbind(Mydataf$Q1B1,Mydataf$Q1B2,Mydataf$Q1B3,Mydataf$Q1B4)/100
+Belief2<- cbind(Mydataf$Q2B1,Mydataf$Q2B2,Mydataf$Q2B3,Mydataf$Q2B4)/100
+Belief3<- cbind(Mydataf$Q3B1,Mydataf$Q3B2,Mydataf$Q3B3,Mydataf$Q3B4)/100
+Belief4<- cbind(Mydataf$Q4B1,Mydataf$Q4B2,Mydataf$Q4B3,Mydataf$Q4B4)/100
+Belief5<- cbind(Mydataf$Q5B1,Mydataf$Q5B2,Mydataf$Q5B3,Mydataf$Q5B4)/100
+Belief6<- cbind(Mydataf$Q6B1,Mydataf$Q6B2,Mydataf$Q6B3,Mydataf$Q6B4)/100
+Belief7<- cbind(Mydataf$Q7B1,Mydataf$Q7B2,Mydataf$Q7B3,Mydataf$Q7B4)/100
+Belief8<- cbind(Mydataf$Q8B1,Mydataf$Q8B2,Mydataf$Q8B3,Mydataf$Q8B4)/100
+Belief9<- cbind(Mydataf$Q9B1,Mydataf$Q9B2,Mydataf$Q9B3,Mydataf$Q9B4)/100
+Belief10<- cbind(Mydataf$Q10B1,Mydataf$Q10B2,Mydataf$Q10B3,Mydataf$Q10B4)/100
+Belief11<- cbind(Mydataf$Q11B1,Mydataf$Q11B2,Mydataf$Q11B3,Mydataf$Q11B4)/100
+Belief12<- cbind(Mydataf$Q12B1,Mydataf$Q12B2,Mydataf$Q12B3,Mydataf$Q12B4)/100
+Belief13<- cbind(Mydataf$Q13B1,Mydataf$Q13B2,Mydataf$Q13B3,Mydataf$Q13B4)/100
+Belief14<- cbind(Mydataf$Q14B1,Mydataf$Q14B2,Mydataf$Q14B3,Mydataf$Q14B4)/100
+Belief15<- cbind(Mydataf$Q15B1,Mydataf$Q15B2,Mydataf$Q15B3,Mydataf$Q15B4)/100
+Belief16<- cbind(Mydataf$Q16B1,Mydataf$Q16B2,Mydataf$Q16B3,Mydataf$Q16B4)/100
+belieflist<-list(Belief1,Belief2,Belief3,Belief4,Belief5,Belief6,Belief7,Belief8,Belief9,Belief10,Belief11,Belief12,Belief13,Belief14,Belief15,Belief16)
+# chosenbelief after exclusion
+ChosenBelief<-ChosenBelief[-exclude[[2]],]
+# maximumBelief after exclusion
+MaximumBelief<-MaximumBelief[-exclude[[2]],]
+# transform correctness of each response into binary values where 1 means correct and 0 means wrong.
+CorrectCheck<-correctcheck(answertable,correctanswervector)
+# beliefs assigned to the correct choices of each question each participant
+CorrectBelief<-correctbelief(belieflist,correctanswervector)
+#----------------------------------------------------------------------#
+
+# KEY VARIABLES
+SampleSize<-samplesize(Mydataf) # samplesize
+Accuracy<-accuracy(CorrectCheck) # accuracy
+BeliefAccuracy<-beliefaccuracy(CorrectBelief) # beliefaccuracy
+Confidence<-itemconfidence(ChosenBelief) # item-wise confidence
+QuestionSize <- ncol(CorrectCheck) # number of questions
+OverallConfidence<-Mydataf$EstimatedNumCorrect/QuestionSize # overall confidence/global confidence
+#----------------------------------------------------------------------#
+# a summary of variables
+basicssum(Accuracy)
+basicssum(BeliefAccuracy)
+basicssum(Confidence)
+basicssum(OverallConfidence)
+
+# Pearson's correlation
+print(paste0("The Pearson's correlaiton between accuracy and binary accuracy: "))
+cor.test(Accuracy,BeliefAccuracy)
+
+#----------------------------------------------------------------------#
+## Beliefs in Social Comparison
+SocialBelief1<- cbind(Mydataf$Q1O1,Mydataf$Q1O2,Mydataf$Q1O3,Mydataf$Q1O4)/100
+SocialBelief2<- cbind(Mydataf$Q2O1,Mydataf$Q2O2,Mydataf$Q2O3,Mydataf$Q2O4)/100
+SocialBelief3<- cbind(Mydataf$Q3O1,Mydataf$Q3O2,Mydataf$Q3O3,Mydataf$Q3O4)/100
+SocialBelief4<- cbind(Mydataf$Q4O1,Mydataf$Q4O2,Mydataf$Q4O3,Mydataf$Q4O4)/100
+SocialBelief5<- cbind(Mydataf$Q5O1,Mydataf$Q5O2,Mydataf$Q5O3,Mydataf$Q5O4)/100
+SocialBelief6<- cbind(Mydataf$Q6O1,Mydataf$Q6O2,Mydataf$Q6O3,Mydataf$Q6O4)/100
+SocialBelief7<- cbind(Mydataf$Q7O1,Mydataf$Q7O2,Mydataf$Q7O3,Mydataf$Q7O4)/100
+SocialBelief8<- cbind(Mydataf$Q8O1,Mydataf$Q8O2,Mydataf$Q8O3,Mydataf$Q8O4)/100
+SocialBelief9<- cbind(Mydataf$Q9O1,Mydataf$Q9O2,Mydataf$Q9O3,Mydataf$Q9O4)/100
+SocialBelief10<- cbind(Mydataf$Q10O1,Mydataf$Q10O2,Mydataf$Q10O3,Mydataf$Q10O4)/100
+SocialBelief11<- cbind(Mydataf$Q11O1,Mydataf$Q11O2,Mydataf$Q11O3,Mydataf$Q11O4)/100
+SocialBelief12<- cbind(Mydataf$Q12O1,Mydataf$Q12O2,Mydataf$Q12O3,Mydataf$Q12O4)/100
+SocialBelief13<- cbind(Mydataf$Q13O1,Mydataf$Q13O2,Mydataf$Q13O3,Mydataf$Q13O4)/100
+SocialBelief14<- cbind(Mydataf$Q14O1,Mydataf$Q14O2,Mydataf$Q14O3,Mydataf$Q14O4)/100
+SocialBelief15<- cbind(Mydataf$Q15O1,Mydataf$Q15O2,Mydataf$Q15O3,Mydataf$Q15O4)/100
+SocialBelief16<- cbind(Mydataf$Q16O1,Mydataf$Q16O2,Mydataf$Q16O3,Mydataf$Q16O4)/100
+socialbelieflist<-list(SocialBelief1,SocialBelief2,SocialBelief3,SocialBelief4,SocialBelief5,SocialBelief6,SocialBelief7,SocialBelief8,SocialBelief9,SocialBelief10,SocialBelief11,SocialBelief12,SocialBelief13,SocialBelief14,SocialBelief15,SocialBelief16)
+
+# beliefs about other people choosing the correct choice for each question each participant
+SocialCorrectBelief<-correctbelief(socialbelieflist,correctanswervector)
+# beliefs about other people choosing the choice the participant chose for each question each participant
+SocialChosenBelief<-chosenbelief(socialbelieflist,answertable)
+# key variables
+AccuracyPercentile<-accuracypercentile(Accuracy) # actual performance percentile by binary score
+BeliefaccuracyPercentile<-beliefaccuracypercentile(BeliefAccuracy) # actual performance percentile by probabilistic score
+SharedBelief <- beliefaccuracy(SocialChosenBelief) # mean beliefs in other people choosing the same answer as I did
+SpecificPercentile<-Mydataf$SpecificPercentile/100 # estimate of one's performance relative to others in percentile on the specific questionnaire
+
+# variable basic info
+basicssum(AccuracyPercentile)
+basicssum(BeliefaccuracyPercentile)
+basicssum(SharedBelief)
+basicssum(SpecificPercentile)
+
+O_belief <- as.data.frame(SocialChosenBelief)
+O_belief$subid <- c(1:nrow(O_belief))
+O_belief_l <- reshape(O_belief, varying = list(1:(ncol(O_belief) - 1)), direction = "long")
+
+S_belief <- as.data.frame(ChosenBelief)
+S_belief_l <- reshape(S_belief, varying = list(1:ncol(S_belief)), direction = "long")
+
+comb_data <- cbind(S_belief_l, O_belief_l)
+comb_data <- comb_data[, -c(3:5)]
+names(comb_data) <- c("Q", "Self", "Other", "Subject")
+comb_data$Percentile <- rep(SpecificPercentile, ncol(S_belief))
+
+# model1 <- lmer(Other ~ Self + (1|Q) + (1|Subject), data = comb_data)
+# summary(model1)
+# 
+# model2 <- lmer(Other ~ Self * Percentile + (1|Q) + (1|Subject), data = comb_data)
+# summary(model2)
+# 
+# model3 <- lmer(Other ~ Self * Percentile + (Self|Q) + (Self|Subject), data = comb_data)
+# summary(model3)
+
+comb_data[, c(2,3,5)] <- lapply(comb_data[, c(2,3,5)], scale)
+
+model3 <- lmer(Other ~ Self * Percentile + (1|Q) + (Self|Subject), data = comb_data)
+summary(model3)
+
+emtrends(model3, ~Percentile, var = "Self", at = list(Percentile = c(-1,0,1)))
+
+```

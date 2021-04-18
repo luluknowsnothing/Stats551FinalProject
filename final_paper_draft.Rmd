@@ -1,0 +1,69 @@
+---
+title: "Why do people misperceive their ability relative to others? An examination using Bayesian statistics"
+author: "Yuyan Han & Qinggang Yu"
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: yes
+  pdf_document:
+    df_print: kable
+    latex_engine: xelatex
+    toc: yes
+bibliography: mybib.bib
+documentclass: article
+fontsize: 12pt
+geometry: margin=1in
+link-citations: yes
+mainfont: Times New Roman
+csl: ASA.csl
+sansfont: Times New Roman
+subtitle: STATS 551 Final paper
+always_allow_html: yes
+---
+
+\pagebreak
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, include = FALSE}
+library(knitr)
+library(tidyverse)
+library(foreign)
+library(readxl)
+library(stargazer)
+library(ggrepel)
+library(readr)
+library(magrittr)
+```
+
+# Introduction
+
+The 21st century may be an era of the infectious disease [@quammen2012spillover]. Indeed, the 21st century has been inflicted by various pandemics: SARS in 2003, H1N1 influenza in 2009, and since the end of 2019 till today, COVID-19. Besides imposing enormous threats to people's physical health, pandemics also cast huge influence on mental health. Since its outbreak, COVID-19 has brought grave consequences for people's emotion and psychological well-being, regardless of age or gender[@Philip2020; @Milne2020; @Phelps2020; @Zhang2020; @Terry2020; @Kumar2020; @Pfefferbaum2020]. Therefore, understanding how pathogen threat (like the current pandemic) shifts people's emotional patterns or sentiments presents as a timely investigation.   
+
+However, one cannot fully understand the sentiment pattern of any group or society without understanding its cultural underpinning, given the profound way that culture shapes one's emotion [@tsai2006cultural; @tsai2007ideal]. The present study focused on one important dimension that cultures differ on --- collectivism-individualism [@Markus1991; @hofstede1984culture]. Whereas individualistic cultures emphasize freedom, personal choice, self-interest, personal achievements, and the agency and independence of the self, collectivist cultures emphasize social roles, obligations, social norms, and the importance of groups, relationships, and hierarchy.  
+
+The construct of collectivism-individualism is particularly relevant to the discussion of pathogen threat because prior work has proposed that variation in historical pathogen prevalence across the globe is the very reason that cultures differ on this dimension [@Fincher2008]. Throughout the human history, individuals and social groups need to possess psychological mechanisms that serve the function of antipathogen defense in order to survive. One effective antipathogen defense mechanism is collectivism. First, collectivists make clear distinction between ingroup and outgroup, and are more likely to show ingroup favoritism and outgroup denigration [@house2004culture]. They are thus more cautious when being around of outgroup, who, in human history, are more likely to carry novel pathogens [@diamond1999guns]. Second, collectivist cultures have stronger social norms [@gelfand2006nature], including many that has direct consequences on antipathogen defense [@sherman1999darwinian]. Therefore, it stands to reason that people from collectivist cultures should be more wary of pathogen threat, and hence showing a more negative sentiment in response to pathogen threat.  
+
+However, one may hypothesize the exact opposite. Collectivism comes with a greater range of social relationships. Social relationships, especially close ones, are typically considered as warm and soothing [@williams2008experiencing]. For instance, prior work show that physical reactions to pain are attentuated in the presence of close others [@coan2006lending; @Eisenberger2007]. Extrapolating from these findings, it is possible that when feeling embedded in social relationships, there may generate a so-called "analgesic effect", so as individuals become less sensitive and vigilant to the danger and threat in the environment. Indeed, a recent study shows that when primed with pathogen threat, individuals who are more interdependent (or collectivist) become less vigilant to norm violations [@Salvador2020]. Therefore, an alternative hypothesis is that people from collectivist cultures may in fact be less sensitive to pathogen threat, and thus exhibit a more positive (or less negative) sentiment towards the pandemic.
+
+To test these competing hypotheses, we investigate people's expression of their sentiments towards the pandemic as they naturally occur. In particular, we prospectly collected posts (or tweets) from Twitter, one of the most popular social media, and analyzed the sentiments. This method enables us to collect a large amount of data which are not limited by geographical constraint. We focused our investigation on each of the states of the USA, which has been shown to differ in the degree of collectivism. We examined whether the tweets coming from different states differ in the sentiments, as a function of the level of collectivism of each state.
+
+
+# Data
+
+## Data collection
+
+### Twitter data
+
+The data of the present study were collected by live-streaming tweets during a three-week period from October 30th to November 19th. We targeted this period because it overlapped with the onset of the "third wave" of the COVID-19 pandemic in the U.S., when close to 2,700,000 new cases and more than 22,000 new deaths happened. All tweets were from within the U.S. as we applied a bounding box defined by geographical coordinates of the U.S borders during tweet streaming. We conducted two separate lines of collection. One collection streamed tweets containing words that are related to the COVID-19 pandemic, such as "covid", "corona", and "pandemic" (for the full list, see below). The other collection streamed general tweets, which means we did not limit the collection to any specific keywords. This general collection provides an estimate of the baseline sentiment pattern.
+
+```{r covid list, eval = FALSE}
+COVID_list <- c('covid', 'corona', 'pandemic', 'epidemic',
+                'reopen', 'quarantine','social distance', 
+                'cough', 'fever', 'mask', 'virus', 'infect',
+                'contagious', 'stayhome')
+```
+
+

@@ -389,9 +389,6 @@ summary(model3)
 # Likelihood Function
 likelihood <- function(x, y, base, alpha, beta, theta, sd){
   pred <- base + x * (alpha + beta * theta)
-  if (sd < 0){
-    sd = 0
-  }
   ll_vec <- dnorm(y, mean = pred, sd = sd, log = T)
   sum_ll <- sum(ll_vec)
   return(sum_ll)
@@ -401,7 +398,7 @@ likelihood <- function(x, y, base, alpha, beta, theta, sd){
 prior <- function(base, theta, sd, option){
   base_mu <- 1/option
   base_prior <- dnorm(base, mean = base_mu, sd = 0.2, log = T)
-  theta_prior <- dnorm(theta, mean = 0.5, sd = 0.2, log = T)
+  theta_prior <- dnorm(theta, mean = 0.65, sd = 0.3, log = T)
   sd_prior <- dbeta(sd, 2, 5, log = T)
   sum_prior <- base_prior + theta_prior + sd_prior
   return(sum_prior)
@@ -425,19 +422,15 @@ run_metropolis_MCMC <- function(startvalue, iterations, x, y, alpha, beta, optio
         base_pro <- proposal[1]
         theta_pro <- proposal[2]
         sd_pro <- proposal[3]
- 
-        probab <- exp(post(x, y, base_pro, alpha, beta, theta_pro, sd_pro, option) - 
-                        post(x, y, chain[i,1], alpha, beta, chain[i,2], chain[i,3], option))
-        if (is.na(probab)){
-
+        
+        if (sd_pro < 0){
           probab <- 0
-
-          print(base_pro)
-          print(theta_pro) 
-          print(sd_pro)
-          print(post(x, y, base_pro, alpha, beta, theta_pro, sd_pro, option))
-          print(post(x, y, chain[i,1], alpha, beta, chain[i,2], chain[i,3], option))
+        }else{
+          probab <- exp(post(x, y, base_pro, alpha, beta, theta_pro, sd_pro, option) - 
+                        post(x, y, chain[i,1], alpha, beta, chain[i,2], chain[i,3], option))
         }
+ 
+      
         if (runif(1) < probab){
             chain[i+1,] <- proposal
         }else{
@@ -467,12 +460,33 @@ subj_chain <- function(startvalue, iterations, my_data, alpha, beta, option, n){
 
 startvalue <- c(0.5, 0.5, 0.5)
 data1_chains <- subj_chain(startvalue, 10000, comb_data, 0.8, -0.3, 4, 97)
+post_theta <- apply(data1_chains[-(1:5000),2,], 2, mean)
+sum_sqd <- sum((post_theta - SpecificPercentile) ^ 2)
 
 acceptance_l <- rep(0,97)
+
 for (sub in 1:97){
   acceptanace <- 1 - mean(duplicated(data1_chains[-(1:5000),,sub]))
   acceptance_l[sub] <- acceptanace
 }
+
+store_data <- function(startvalue, iterations, comb_data, alpha, beta, option, n){
+  out <- array(dim = c(n, 5))
+  data_chain <- subj_chain(startvalue, iterations, comb_data, alpha, beta, option, n)
+  out[, 1] <- 1:n
+  out[, 2] <- apply(data_chain[-(1:5000),2,], 2, mean)
+  out[, 3] <- rep(alpha, n)
+  out[, 4] <- rep(beta, n)
+  for (sub in 1:n){
+    acceptanace <- 1 - mean(duplicated(data_chain[-(1:5000),,sub]))
+    out[sub, 5] <- acceptanace
+  }
+  return(out)
+}
+
+
+
+test <- store_data(startvalue, 10000, comb_data, 0.3, -0.5, 4, 97)
 
 find_hyperp <- function(alpha_vec, beta_vec){
   

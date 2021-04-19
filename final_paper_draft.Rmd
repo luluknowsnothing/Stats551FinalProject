@@ -28,30 +28,57 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 3)
 library(knitr)
 library(tidyverse)
-library(foreign)
-library(readxl)
-library(stargazer)
-library(ggrepel)
-library(readr)
-library(magrittr)
+library(xlsx)
+library(lmerTest)
+library(emmeans)
 ```
 
 # Introduction
 
-The 21st century may be an era of the infectious disease [@quammen2012spillover]. Indeed, the 21st century has been inflicted by various pandemics: SARS in 2003, H1N1 influenza in 2009, and since the end of 2019 till today, COVID-19. Besides imposing enormous threats to people's physical health, pandemics also cast huge influence on mental health. Since its outbreak, COVID-19 has brought grave consequences for people's emotion and psychological well-being, regardless of age or gender[@Philip2020; @Milne2020; @Phelps2020; @Zhang2020; @Terry2020; @Kumar2020; @Pfefferbaum2020]. Therefore, understanding how pathogen threat (like the current pandemic) shifts people's emotional patterns or sentiments presents as a timely investigation.   
+Most people do not have accurate perception of their self-knowledge. Prior work has documented the Dunning-Kruger effect, which suggests that across multiple domains, bottom-performers overestimate their performance, while top-performers tend to underestimate their performance. Such an effect also happens when people judge their performance relative to others: bottom-performers overestimate their ranking in terms of performance, yet top-performers underestimate. 
 
-However, one cannot fully understand the sentiment pattern of any group or society without understanding its cultural underpinning, given the profound way that culture shapes one's emotion [@tsai2006cultural; @tsai2007ideal]. The present study focused on one important dimension that cultures differ on --- collectivism-individualism [@Markus1991; @hofstede1984culture]. Whereas individualistic cultures emphasize freedom, personal choice, self-interest, personal achievements, and the agency and independence of the self, collectivist cultures emphasize social roles, obligations, social norms, and the importance of groups, relationships, and hierarchy.  
+So far, it remains unclear what contributes to this miscalibration in social comparison. To explain this miscalibration, psychologists have done extensive investigation in how people perceive (or misperceive) their absolute ability on different tasks. However, much less is known about how people perceive (or misperceive) the ability of others, which intuitively should play an important role in social comparison. In a typical survey, respondents are asked to pick the best answers for a set of multiple-choice questions, rate their confidence in each pick, and rank their performance relative to others in percentile. Oftentimes we do not have information on how respondents make specific estimations about others’ performance, which hinders our understandings of how people perceive others and how this interacts with people's biased rating in social comparison.    
 
-The construct of collectivism-individualism is particularly relevant to the discussion of pathogen threat because prior work has proposed that variation in historical pathogen prevalence across the globe is the very reason that cultures differ on this dimension [@Fincher2008]. Throughout the human history, individuals and social groups need to possess psychological mechanisms that serve the function of antipathogen defense in order to survive. One effective antipathogen defense mechanism is collectivism. First, collectivists make clear distinction between ingroup and outgroup, and are more likely to show ingroup favoritism and outgroup denigration [@house2004culture]. They are thus more cautious when being around of outgroup, who, in human history, are more likely to carry novel pathogens [@diamond1999guns]. Second, collectivist cultures have stronger social norms [@gelfand2006nature], including many that has direct consequences on antipathogen defense [@sherman1999darwinian]. Therefore, it stands to reason that people from collectivist cultures should be more wary of pathogen threat, and hence showing a more negative sentiment in response to pathogen threat.  
+In the present study, we therefore collect data on people's perception of others' performance in addition to a typical survey, and attempt to tackle the issue by first gaining some insights into how people perceive others' performance using Bayesian statistics. Specifically, we examine the possibility that people use the self as an anchor when judging others. Importantly, we test whether the degree that people use the self as an anchor varies as a function of their perceived their ability relative to others.  
 
-However, one may hypothesize the exact opposite. Collectivism comes with a greater range of social relationships. Social relationships, especially close ones, are typically considered as warm and soothing [@williams2008experiencing]. For instance, prior work show that physical reactions to pain are attentuated in the presence of close others [@coan2006lending; @Eisenberger2007]. Extrapolating from these findings, it is possible that when feeling embedded in social relationships, there may generate a so-called "analgesic effect", so as individuals become less sensitive and vigilant to the danger and threat in the environment. Indeed, a recent study shows that when primed with pathogen threat, individuals who are more interdependent (or collectivist) become less vigilant to norm violations [@Salvador2020]. Therefore, an alternative hypothesis is that people from collectivist cultures may in fact be less sensitive to pathogen threat, and thus exhibit a more positive (or less negative) sentiment towards the pandemic.
+We propose that when making an inference about other's performance on a specific task, people will use three sources of information, (a) their perception of their own performance on the task, (b) their perception of their overall ability relative to others, and (c) some random guessing or bias in their inference.  
 
-To test these competing hypotheses, we investigate people's expression of their sentiments towards the pandemic as they naturally occur. In particular, we prospectly collected posts (or tweets) from Twitter, one of the most popular social media, and analyzed the sentiments. This method enables us to collect a large amount of data which are not limited by geographical constraint. We focused our investigation on each of the states of the USA, which has been shown to differ in the degree of collectivism. We examined whether the tweets coming from different states differ in the sentiments, as a function of the level of collectivism of each state.
+Specifically, we are interested in testing the role of a particular cognitive bias, namely the curse of knowledge, which refers to the phenomenon that when people feel knowledgeable about something, they tend to unknowingly assume that others know it too. To demonstrate, for a given individual, will she perceive higher consensus when she has higher confidence? Across individuals, will those who perceive themselves being more knowledgeable relative to others show a greater curse of knowledge by assuming a higher correlation between their own confidence and others' consensus?
 
 
 # Data
+
+We used three separate datasets to test our prediction, which were collected using Amazon Mechanical Turk in the year of 2017 and 2018. Each of the datasets was generated by having multiple subjects answering a number of multiple-choice questions. For each question, subjects were asked to (1) picked the best choice for the question as they believed; (2) rated their beliefs, in percentage, that each choice was the correct answer; (3) estimated the percentage of other respondents who would pick each choice as the correct answer. The probabilities assigned to each choice of a question should sum up to 1 for both (2) and (3).  
+Here is a sample question:  
+“New employees must be offered insurance within____ days of their start date.  
+A. 60 days; B. 90 days.  
+What do you think is the probability of each choice being the correct answer?  
+What percentage of MTurk workers taking this survey do you think will choose each choice as the correct answer?”  
+
+At the end of the study, subjects were asked to provide an estimate of their performance compared to others using percentile. 
+
+The first dataset was generated using 18 two-alternative multiple-choice questions on the topic of Affordable Care Act. This dataset contains 74 subjects. The second dataset was generated using 12 four-alternative multiple-choice questions of the Raven’s Advanced Progressive Matrix, a test of abstract reasoning. This dataset contains 91 subjects. The third dataset was generated using 16 four-alternative multiple-choice questions on global geography, international systems etc. This dataset contains 172 subjects.
+
+# Model
+
+Following our theoretical questions, we therefore constructed a two-level model to test this cognitive bias. (1) Whether their perceived consensus is positively correlated with their own confidence, such that when they are more confidence  there a positive correlation confident in  if the strength of the relationship between Y and X further varies as a function of the person's belief about his or her own overall ability in this domain relative to others, $\theta$. This is due to a well-studied cognitive bias, **curse of knowledge**, that top performers in particular tend to assume other people share the same degree of expertise they themselves have, hence overestimate the similarity between the self and the others. Therefore, we aim to test if Y is also predicted by the interaction between X and $\theta$.
+
+
+the item response theory (IRT) to approach this question. We assume that the probability that a respondent believes that another person will choose the same answer for an item, denoted as Y,  is a mathematical function of the person and items. In this case, the person trait refers to the respondent’s beliefs about their ranking relative to others, denoted as θp, and a general perceived similarity between themselves and others, denoted as 𝛼; the item trait refers to respondent’s confidence on specific items, denoted as X, and respondent’s level of performance Z	. 
+Taking the performance on a multiple-choice question in a test as an example. A person believes that choice C is the correct answer with some confidence X, and the person believes that Y percent of people will consent on choice C being the correct answer. We propose that Y is determined by X, such that the person determines how many other people would choose the same answer based on the certainty of his or her own choice. Y should also be influenced by a certain degree of random guessing of what others would do (i.e., if there are 4 choices, by pure chance along, 25% of other people would choose C as the correct answer). We are interested in testing if the strength of the relationship between Y and X further varies as a function of the person's belief about his or her own overall ability in this domain relative to others, $\theta$. This is due to a well-studied cognitive bias, **curse of knowledge**, that top performers in particular tend to assume other people share the same degree of expertise they themselves have, hence overestimate the similarity between the self and the others. Therefore, we aim to test if Y is also predicted by the interaction between X and $\theta$.
+
+We built a multilevel regression model using the Bayesian framework with each of the datasets. Our data can be organized into two levels. Each subject answered a number of questions (18, 12, 16, respectively in our study), which constitutes the item-level. For each question, the subject rated the confidence that the option he/she selected was correct, and the subject provided an estimate of the percentage of other people who would choose the same option. We fit a linear regression at the item-level (across the items within each subject) as follows:  
+
+
+where $\epsilon_{pi}$ represents the error term for item i of subject p, and  $\beta_0$ and $\beta_1$ represents the random intercept and the random slope, respectively, which are allowed to vary across subjects.  
+$\beta_1$, in particular, represents the strength of the relationship between one's confidence of his/her own choice and his/her belief on how many other people would choose the same option. We thus fit a linear regression at the subject-level to see if this relationship depends on one's belief about the overall ablity of the self relative to others, represented as $\theta$:
+
+
+
+
 
 ## Data collection
 

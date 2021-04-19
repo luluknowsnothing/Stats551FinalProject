@@ -177,22 +177,41 @@ steps_fix_1 <- c(0.01,0.01,0.005)
 steps_fix_2 <- c(0.008, 0.008, 0.005)
 steps_fix_3 <- c(0.005, 0.005, 0.004)
 
-chain1_data1 = run_metropolis_MCMC(startvalue1, 10000, data1, n1, 2, steps_fix_1)
-chain2_data1 = run_metropolis_MCMC(startvalue1, 10000, data1, n1, 2, steps_fix_1)
-chain3_data1 = run_metropolis_MCMC(startvalue1, 50000, data1, n1, 2)
+chain1_data1 = run_metropolis_MCMC(startvalue1, 50000, data1, n1, 2, steps_fix_1)
+write.csv(chain1_data1, "chain1_data1.csv")
+chain1_data1 <- NULL
+chain2_data1 = run_metropolis_MCMC(startvalue1, 50000, data1, n1, 2, steps_fix_1)
+write.csv(chain2_data1, "chain2_data1.csv")
+chain2_data1 <- NULL
+chain3_data1 = run_metropolis_MCMC(startvalue1, 50000, data1, n1, 2, steps_fix_1)
+write.csv(chain3_data1, "chain3_data1.csv")
+chain3_data1 <- NULL
 
-chain1_data2  = run_metropolis_MCMC(startvalue2, 10000, data2, n2, 4, steps_fix_2)
-chain2_data2  = run_metropolis_MCMC(startvalue2, 50000, data2, n2, 4)
-chain3_data2  = run_metropolis_MCMC(startvalue2, 50000, data2, n2, 4)
+chain1_data2  = run_metropolis_MCMC(startvalue2, 50000, data2, n2, 4, steps_fix_2)
+write.csv(chain1_data2, "chain1_data2.csv")
+chain1_data2 <- NULL
+chain2_data2  = run_metropolis_MCMC(startvalue2, 50000, data2, n2, 4, steps_fix_2)
+write.csv(chain2_data2, "chain2_data2.csv")
+chain2_data2 <- NULL
+chain3_data2  = run_metropolis_MCMC(startvalue2, 50000, data2, n2, 4, steps_fix_2)
+write.csv(chain3_data2, "chain3_data2.csv")
+chain3_data2 <- NULL
 
 chain1_data3  = run_metropolis_MCMC(startvalue3, 50000, data3, n3, 4, steps_fix_3)
+write.csv(chain1_data3, "chain1_data3.csv")
+chain1_data3 <- NULL
 chain2_data3  = run_metropolis_MCMC(startvalue3, 50000, data3, n3, 4, steps_fix_3)
+write.csv(chain2_data3, "chain2_data3.csv")
+chain2_data3 <- NULL
 chain3_data3  = run_metropolis_MCMC(startvalue3, 50000, data3, n3, 4, steps_fix_3)
+write.csv(chain3_data3, "chain3_data3.csv")
+chain3_data3 <- NULL
+
 
 burnIn = 1000
 
 # check acceptance to see whether it is within 20%-30%
-acceptance = 1-mean(duplicated(chain1_data1[-(1:burnIn),]))
+acceptance = 1-mean(duplicated(chain1_data2[-(1:burnIn),]))
 ```
 
 ```{r traceplot, warning=F}

@@ -32,8 +32,6 @@ knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 3)
 library(knitr)
 library(tidyverse)
 library(xlsx)
-library(lmerTest)
-library(emmeans)
 ```
 
 # Introduction
@@ -64,33 +62,50 @@ The first dataset was generated using 18 two-alternative multiple-choice questio
 
 # Model
 
-Following our theoretical questions, we therefore constructed a two-level model to test this cognitive bias. (1) Whether their perceived consensus is positively correlated with their own confidence, such that when they are more confidence  there a positive correlation confident in  if the strength of the relationship between Y and X further varies as a function of the person's belief about his or her own overall ability in this domain relative to others, $\theta$. This is due to a well-studied cognitive bias, **curse of knowledge**, that top performers in particular tend to assume other people share the same degree of expertise they themselves have, hence overestimate the similarity between the self and the others. Therefore, we aim to test if Y is also predicted by the interaction between X and $\theta$.
+We adopt the idea of the item response theory to construct our models. We assumed that for each survey item $i$, a respondent $p$'s perceived consensus (the percentage  of other people choosing the same answer as she did), denoted as $Y_pi$, is a function of the general person trait and the item trait. In our model, the person trait refers to the respondents' beliefs about their percentile ranking relative to others, denoted as $Z_p$, and their baseline beliefs on consensus given no information, denoted as $\beta_{0p}$, which might result from rational guessing (i.e. believe that by chance 25% people would choose any single option out of four options), or some general bias. The item trait refers to the respondent $p$'s confidence on their choice for each item $i$, denoted as $X_{pi}$ which provides information on how knowledgeable the respondent $p$ feels about this particular item $i$.  Following our theoretical questions, we constructed a two-level linear regression model as below:   
+$$
+\begin{aligned}
+Level\quad 1:\; & Y_{pi} = \beta_{0p} + \beta_{1p}X_{pi} + e_{pi} \\
+Level\quad 2:\; & \beta_{1p}= \alpha_0 + \alpha_1 Z_{p} + e  \\
+\text{where}\quad & e_{pi}\sim N(0,\sigma_{p}^2) \\
+& e\sim N(0,\sigma^2)
+\end{aligned}
+$$
+In this model, we is conditionally independent of $Z_p$ given $\beta_{1p}$. The parameters that are of particular interest to us are $\bar{\beta}_{1p}$ and $\alpha_1$. The average $\beta_{1p}$ across participants tells us whether on average, there is a curse of knowledge effect among our respondents, such that when they have higher confidence, or say, feel more knowledgeable on an item, they tend to perceive a higher consensus among other respondents. $\alpha_1$ tells us whether across respondents, those who perceived themselves having greater ability relative to others will be more subject to the curse of knowledge bias.
+
+Regarding the priors, considering the range of the data, we set the priors as the follows:
+$$
+\begin{aligned}
+\text{For level 1 parameters}, & \text{we set the prior to be same for all respondents}: \\
+&\beta_{0p} \sim N(0,0.4^2), \\
+&\beta_{1p} \sim N(0,0.4^2), \\
+&\sigma_{pi} \sim Beta(2,5), \text{ for each respondent } p \\
+\text{For level 2 parameters}, & \text{we set}: \\
+&\alpha_{0} \sim N(0,0.4^2), \\
+&\alpha_{1} \sim N(0,0.4^2), \\
+&\sigma \sim Beta(2,5) \\
+\end{aligned}
+$$
+Assuming a respondent' perceived consensus for each item is i.i.d and each respondent's perceptions are independent of each other, we thus having the likelihood as:
+$$
+\begin{aligned}
+p(\pmb{Y}|everything else) &= \prod_{p=1}^N \prod_{i=1}^m p(Y_{pi}|\beta_{0p},\beta_{1p},\sigma_{p},X_{pi})\cdot 
+\prod_{p=1}^N p(\beta_{1p}|\alpha_0,\alpha_1,\sigma,Z_p) \\
+&= \prod_{p=1}^N \prod_{i=1}^m N(Y_{pi}|\beta_{0p}+\beta_{1p}X_{pi},\sigma_{ip}^2) \cdot
+\prod_{i=1}^m N(\beta_{1p}|\alpha_0+\alpha_1Z_{p},\sigma^2)\\
+\\
+&\text{where N is the number of respondents and m is the number of items}
+\end{aligned}
+$$
+
+With the likelihood and priors available, we then use the Metroplis-Hasting algorithm to approximate the posterior parameters. The proposal distribution $q(x,\cdot)$ is normal distribution. Since normal distribution is symmetric, we thus have $R=\frac{h(y)}{h(x)}$, where h(x) refers to the joint distribution of likelihood and priors.  
 
 
-the item response theory (IRT) to approach this question. We assume that the probability that a respondent believes that another person will choose the same answer for an item, denoted as Y,  is a mathematical function of the person and items. In this case, the person trait refers to the respondent’s beliefs about their ranking relative to others, denoted as θp, and a general perceived similarity between themselves and others, denoted as 𝛼; the item trait refers to respondent’s confidence on specific items, denoted as X, and respondent’s level of performance Z	. 
-Taking the performance on a multiple-choice question in a test as an example. A person believes that choice C is the correct answer with some confidence X, and the person believes that Y percent of people will consent on choice C being the correct answer. We propose that Y is determined by X, such that the person determines how many other people would choose the same answer based on the certainty of his or her own choice. Y should also be influenced by a certain degree of random guessing of what others would do (i.e., if there are 4 choices, by pure chance along, 25% of other people would choose C as the correct answer). We are interested in testing if the strength of the relationship between Y and X further varies as a function of the person's belief about his or her own overall ability in this domain relative to others, $\theta$. This is due to a well-studied cognitive bias, **curse of knowledge**, that top performers in particular tend to assume other people share the same degree of expertise they themselves have, hence overestimate the similarity between the self and the others. Therefore, we aim to test if Y is also predicted by the interaction between X and $\theta$.
-
-We built a multilevel regression model using the Bayesian framework with each of the datasets. Our data can be organized into two levels. Each subject answered a number of questions (18, 12, 16, respectively in our study), which constitutes the item-level. For each question, the subject rated the confidence that the option he/she selected was correct, and the subject provided an estimate of the percentage of other people who would choose the same option. We fit a linear regression at the item-level (across the items within each subject) as follows:  
 
 
-where $\epsilon_{pi}$ represents the error term for item i of subject p, and  $\beta_0$ and $\beta_1$ represents the random intercept and the random slope, respectively, which are allowed to vary across subjects.  
-$\beta_1$, in particular, represents the strength of the relationship between one's confidence of his/her own choice and his/her belief on how many other people would choose the same option. We thus fit a linear regression at the subject-level to see if this relationship depends on one's belief about the overall ablity of the self relative to others, represented as $\theta$:
+# Discussion
+In summary, we confirmed hypothesis on curse of knowledge on individual level, such that on average for a given individual, the more knowledgeable she feels about an item, the more consensus she perceived among others. However, across individuals, the curse of knowledge bias will not increase with their perceived ability relative to others. Despite the difference in people's perceived ability in social comparison, they basically use the self as an anchor to their judgment about others to a similar degree. There is no metacognitive difference in people's perception of others' performance. 
 
+The present findings provides some insights into the classic Dunning-Kruger effect in social comparison. A top performer who answers most questions right with high confidence, though kinds of realize her superiority relative to others, overestimate other people's performance by mistakenly assuming too many others knowing the correct answers as she does, thus may in turn dampen her perceived ability in social comparison. For a bottom performer who is misinformed and does not fully realize her lack of knowledge, she overestimated the proportion of others committing to the wrong answers as she does. For a bottom performer who feel uncertain about many items, even though she realizes her lack of knowledge, she mistakenly assumes that others are uncertain too. As the current research suggests, the degree of misperception of consensus are similar among all respondents. Consequently, as we may intuitively imagine that everyone tends to rate their ability to a mediocre percentile that may not accurately reflect their true relative ability in social comparison, and together people create a Dunning-Kruger effect. 
 
-
-
-
-## Data collection
-
-### Twitter data
-
-The data of the present study were collected by live-streaming tweets during a three-week period from October 30th to November 19th. We targeted this period because it overlapped with the onset of the "third wave" of the COVID-19 pandemic in the U.S., when close to 2,700,000 new cases and more than 22,000 new deaths happened. All tweets were from within the U.S. as we applied a bounding box defined by geographical coordinates of the U.S borders during tweet streaming. We conducted two separate lines of collection. One collection streamed tweets containing words that are related to the COVID-19 pandemic, such as "covid", "corona", and "pandemic" (for the full list, see below). The other collection streamed general tweets, which means we did not limit the collection to any specific keywords. This general collection provides an estimate of the baseline sentiment pattern.
-
-```{r covid list, eval = FALSE}
-COVID_list <- c('covid', 'corona', 'pandemic', 'epidemic',
-                'reopen', 'quarantine','social distance', 
-                'cough', 'fever', 'mask', 'virus', 'infect',
-                'contagious', 'stayhome')
-```
-
-
+One interesting and surprising finding we notice in the present research is that across three surveys on very different topics, of different difficulty levels, and responded by different subjects, on average produced the same level of anchoring to infer others' judgment on our own, or in other words, same degree of curse of knowledge, as indicated by $\bar{\beta}_{1p} \approx 0.2$ for all three data sets. Does it imply some deeper mechanism in driving the effect? As we may imagine, on a general level and in the long run, people's perceptions about themselves and their perceptions of others are likely to mutually influence and constitute each other. Is it possible that metacognitively, people have somehow reach a equilibrium in this mutually-constituted loop, and at this state, the degree of anchoring is also balanced at this level. Or maybe it is just a coincidence. To figure out, we need to further investigate into more data sets spanning different domains and collected among different populations in the future.

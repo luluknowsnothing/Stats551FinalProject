@@ -1,24 +1,16 @@
 ---
-title: "Why do people misperceive their ability relative to others? An examination using Bayesian statistics"
+title: "Curse of Knowledge and Misperceived Consensus"
 author: "Yuyan Han & Qinggang Yu"
 date: "`r Sys.Date()`"
 output:
-  word_document:
-    toc: yes
   pdf_document:
     df_print: kable
     latex_engine: xelatex
-    toc: yes
-bibliography: mybib.bib
-documentclass: article
-fontsize: 12pt
-geometry: margin=1in
-link-citations: yes
-mainfont: Times New Roman
-csl: ASA.csl
-sansfont: Times New Roman
-subtitle: STATS 551 Final paper
-always_allow_html: yes
+    toc: TRUE
+bibliography: STATS551Refs.bib
+csl: american-sociological-association.csl
+header-includes:
+   - \usepackage{dcolumn} 
 ---
 
 \pagebreak
@@ -34,35 +26,31 @@ library(tidyverse)
 library(xlsx)
 ```
 
-# Introduction
+## Introduction
 
-Most people do not have accurate perception of their self-knowledge. Prior work has documented the Dunning-Kruger effect, which suggests that across multiple domains, bottom-performers overestimate their performance, while top-performers tend to underestimate their performance. Such an effect also happens when people judge their performance relative to others: bottom-performers overestimate their ranking in terms of performance, yet top-performers underestimate. 
-
+Most people do not have accurate perception of their self-knowledge (e.g.@mabe1982validity; @slovic1977behavioral). Prior work has documented the Dunning-Kruger effect, which suggests that across multiple domains, bottom-performers overestimate their performance, while top-performers tend to underestimate their performance. Such an effect also happens in social comparison when people judge their performance relative to others: bottom-performers overestimate their ranking in terms of performance, yet top-performers underestimate (@kruger1999unskilled; @dunning2011dunning).          
 So far, it remains unclear what contributes to this miscalibration in social comparison. To explain this miscalibration, psychologists have done extensive investigation in how people perceive (or misperceive) their absolute ability on different tasks. However, much less is known about how people perceive (or misperceive) the ability of others, which intuitively should play an important role in social comparison. In a typical survey, respondents are asked to pick the best answers for a set of multiple-choice questions, rate their confidence in each pick, and rank their performance relative to others in percentile. Oftentimes we do not have information on how respondents make specific estimations about others’ performance, which hinders our understandings of how people perceive others and how this interacts with people's biased rating in social comparison.    
+       
+In the present study, we therefore collect data on people's perception of others' judgment in addition to a typical survey, and attempt to tackle the issue by first gaining some insights into how people perceive others' judgment using Bayesian statistics. We propose that when making an inference about other's performance on a specific task, people will use three sources of information, (a) their perception of their own performance on the task, (b) their perception of their overall ability relative to others, and (c) some random guessing or bias in their inference.        
+Specifically, we are interested in testing the role of a particular cognitive bias, namely the curse of knowledge, which refers to the phenomenon that when people feel knowledgeable about something, they tend to unknowingly assume that others know it too (@birch2007curse). To demonstrate, for a given individual, will she perceive higher consensus when she has higher confidence? Across individuals, will those who perceive themselves being more knowledgeable relative to others show a greater curse of knowledge by assuming a higher correlation between their own confidence and others' consensus? In other words, whether people use the self as an anchor when judging others and whether the degree that people use the self as an anchor varies as a function of their perceived their ability relative to others.  
 
-In the present study, we therefore collect data on people's perception of others' performance in addition to a typical survey, and attempt to tackle the issue by first gaining some insights into how people perceive others' performance using Bayesian statistics. Specifically, we examine the possibility that people use the self as an anchor when judging others. Importantly, we test whether the degree that people use the self as an anchor varies as a function of their perceived their ability relative to others.  
+## Data
 
-We propose that when making an inference about other's performance on a specific task, people will use three sources of information, (a) their perception of their own performance on the task, (b) their perception of their overall ability relative to others, and (c) some random guessing or bias in their inference.  
+We used three separate data sets to test our prediction, which were collected using Amazon Mechanical Turk in the year of 2017 and 2018. Each of the data sets was generated by having multiple subjects answering a number of multiple-choice questions. For each question, subjects were asked to (1) picked the best choice for the question as they believed; (2) rated their beliefs, in percentage, that each choice was the correct answer; (3) estimated the percentage of other respondents who would pick each choice as the correct answer. The probabilities assigned to each choice of a question should sum up to 1 for both (2) and (3).    
 
-Specifically, we are interested in testing the role of a particular cognitive bias, namely the curse of knowledge, which refers to the phenomenon that when people feel knowledgeable about something, they tend to unknowingly assume that others know it too. To demonstrate, for a given individual, will she perceive higher consensus when she has higher confidence? Across individuals, will those who perceive themselves being more knowledgeable relative to others show a greater curse of knowledge by assuming a higher correlation between their own confidence and others' consensus?
-
-
-# Data
-
-We used three separate datasets to test our prediction, which were collected using Amazon Mechanical Turk in the year of 2017 and 2018. Each of the datasets was generated by having multiple subjects answering a number of multiple-choice questions. For each question, subjects were asked to (1) picked the best choice for the question as they believed; (2) rated their beliefs, in percentage, that each choice was the correct answer; (3) estimated the percentage of other respondents who would pick each choice as the correct answer. The probabilities assigned to each choice of a question should sum up to 1 for both (2) and (3).  
-Here is a sample question:  
-“New employees must be offered insurance within____ days of their start date.  
-A. 60 days; B. 90 days.  
-What do you think is the probability of each choice being the correct answer?  
-What percentage of MTurk workers taking this survey do you think will choose each choice as the correct answer?”  
+|     Here is a sample question:  
+|     “New employees must be offered insurance within____ days of their start date.  
+|     A. 60 days; B. 90 days.  
+|     What do you think is the probability of each choice being the correct answer?  
+|     What percentage of MTurk workers taking this survey do you think will choose each choice as the correct answer?”  
 
 At the end of the study, subjects were asked to provide an estimate of their performance compared to others using percentile. 
 
-The first dataset was generated using 18 two-alternative multiple-choice questions on the topic of Affordable Care Act. This dataset contains 74 subjects. The second dataset was generated using 12 four-alternative multiple-choice questions of the Raven’s Advanced Progressive Matrix, a test of abstract reasoning. This dataset contains 91 subjects. The third dataset was generated using 16 four-alternative multiple-choice questions on global geography, international systems etc. This dataset contains 172 subjects.
+The first data set was generated using 18 two-alternative multiple-choice questions on the topic of Affordable Care Act. This data set contains 70 subjects. The second data set was generated using 12 four-alternative multiple-choice questions of the Raven’s Advanced Progressive Matrix, a test of abstract reasoning. This data set contains 88 subjects. The third data set was generated using 16 four-alternative multiple-choice questions on global geography, international systems etc. This data set contains 169 subjects.
 
-# Model
+## Model
 
-We adopt the idea of the item response theory to construct our models. We assumed that for each survey item $i$, a respondent $p$'s perceived consensus (the percentage  of other people choosing the same answer as she did), denoted as $Y_pi$, is a function of the general person trait and the item trait. In our model, the person trait refers to the respondents' beliefs about their percentile ranking relative to others, denoted as $Z_p$, and their baseline beliefs on consensus given no information, denoted as $\beta_{0p}$, which might result from rational guessing (i.e. believe that by chance 25% people would choose any single option out of four options), or some general bias. The item trait refers to the respondent $p$'s confidence on their choice for each item $i$, denoted as $X_{pi}$ which provides information on how knowledgeable the respondent $p$ feels about this particular item $i$.  Following our theoretical questions, we constructed a two-level linear regression model as below:   
+We borrow the idea of the item response theory to construct our models (@hambleton1991fundamentals). We assumed that for each survey item $i$, a respondent $p$'s perceived consensus (the percentage  of other people choosing the same answer as she did), denoted as $Y_pi$, is a function of the general person trait and the item trait. In our model, the person trait refers to the respondents' beliefs about their percentile ranking relative to others, denoted as $Z_p$, and their baseline beliefs on consensus given no information, denoted as $\beta_{0p}$, which might result from rational guessing (i.e. believe that by chance 25% people would choose any single option out of four options), or some general bias. The item trait refers to the respondent $p$'s confidence on their choice for each item $i$, denoted as $X_{pi}$ which provides information on how knowledgeable the respondent $p$ feels about this particular item $i$.  Following our theoretical questions, we constructed a two-level linear regression model as below:   
 $$
 \begin{aligned}
 Level\quad 1:\; & Y_{pi} = \beta_{0p} + \beta_{1p}X_{pi} + e_{pi} \\
@@ -71,7 +59,7 @@ Level\quad 2:\; & \beta_{1p}= \alpha_0 + \alpha_1 Z_{p} + e  \\
 & e\sim N(0,\sigma^2)
 \end{aligned}
 $$
-In this model, we is conditionally independent of $Z_p$ given $\beta_{1p}$. The parameters that are of particular interest to us are $\bar{\beta}_{1p}$ and $\alpha_1$. The average $\beta_{1p}$ across participants tells us whether on average, there is a curse of knowledge effect among our respondents, such that when they have higher confidence, or say, feel more knowledgeable on an item, they tend to perceive a higher consensus among other respondents. $\alpha_1$ tells us whether across respondents, those who perceived themselves having greater ability relative to others will be more subject to the curse of knowledge bias.
+In this model, we is conditionally independent of $Z_p$ given $\beta_{1p}$. The parameters that are of particular interest to us are he posterior $\alpha_0|\cdot$,$\alpha_1|\cdot$ and the average $\bar{\beta}_{1p}$ that can be obtained through posterior $\alpha_0|\cdot$,$\alpha_1|\cdot$. The average posterior $\bar \beta_{1p}|\cdot$ obtained across participants tells us whether on average, there is a curse of knowledge effect among our respondents, such that when they have higher confidence, or say, feel more knowledgeable on an item, they tend to perceive a higher consensus among other respondents. $\alpha_1$ tells us whether across respondents, those who perceived themselves having greater ability relative to others will be more subject to the curse of knowledge bias.
 
 Regarding the priors, considering the range of the data, we set the priors as the follows:
 $$
@@ -100,12 +88,19 @@ $$
 
 With the likelihood and priors available, we then use the Metroplis-Hasting algorithm to approximate the posterior parameters. The proposal distribution $q(x,\cdot)$ is normal distribution. Since normal distribution is symmetric, we thus have $R=\frac{h(y)}{h(x)}$, where h(x) refers to the joint distribution of likelihood and priors.  
 
-
-
-
-# Discussion
+     
+## Discussion
 In summary, we confirmed hypothesis on curse of knowledge on individual level, such that on average for a given individual, the more knowledgeable she feels about an item, the more consensus she perceived among others. However, across individuals, the curse of knowledge bias will not increase with their perceived ability relative to others. Despite the difference in people's perceived ability in social comparison, they basically use the self as an anchor to their judgment about others to a similar degree. There is no metacognitive difference in people's perception of others' performance. 
 
 The present findings provides some insights into the classic Dunning-Kruger effect in social comparison. A top performer who answers most questions right with high confidence, though kinds of realize her superiority relative to others, overestimate other people's performance by mistakenly assuming too many others knowing the correct answers as she does, thus may in turn dampen her perceived ability in social comparison. For a bottom performer who is misinformed and does not fully realize her lack of knowledge, she overestimated the proportion of others committing to the wrong answers as she does. For a bottom performer who feel uncertain about many items, even though she realizes her lack of knowledge, she mistakenly assumes that others are uncertain too. As the current research suggests, the degree of misperception of consensus are similar among all respondents. Consequently, as we may intuitively imagine that everyone tends to rate their ability to a mediocre percentile that may not accurately reflect their true relative ability in social comparison, and together people create a Dunning-Kruger effect. 
 
 One interesting and surprising finding we notice in the present research is that across three surveys on very different topics, of different difficulty levels, and responded by different subjects, on average produced the same level of anchoring to infer others' judgment on our own, or in other words, same degree of curse of knowledge, as indicated by $\bar{\beta}_{1p} \approx 0.2$ for all three data sets. Does it imply some deeper mechanism in driving the effect? As we may imagine, on a general level and in the long run, people's perceptions about themselves and their perceptions of others are likely to mutually influence and constitute each other. Is it possible that metacognitively, people have somehow reach a equilibrium in this mutually-constituted loop, and at this state, the degree of anchoring is also balanced at this level. Or maybe it is just a coincidence. To figure out, we need to further investigate into more data sets spanning different domains and collected among different populations in the future.
+    
+## References
+
+\linespread{1}
+
+
+::: {#refs}
+
+:::

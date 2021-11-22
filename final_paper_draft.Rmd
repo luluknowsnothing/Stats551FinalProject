@@ -20,19 +20,21 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 3)
+knitr::opts_chunk$set(echo = FALSE)
 library(knitr)
 library(tidyverse)
 library(xlsx)
+library(gridExtra)
+library(forecast)
 ```
 
 ## Introduction
 
-Most people do not have accurate perception of their self-knowledge (e.g.@mabe1982validity; @slovic1977behavioral). Prior work has documented the Dunning-Kruger effect, which suggests that across multiple domains, bottom-performers overestimate their performance, while top-performers tend to underestimate their performance. Such an effect also happens in social comparison when people judge their performance relative to others: bottom-performers overestimate their ranking in terms of performance, yet top-performers underestimate (@kruger1999unskilled; @dunning2011dunning).          
+Most people do not have accurate perception of their self-knowledge [e.g.@mabe1982validity; @slovic1977behavioral]. Prior work has documented the Dunning-Kruger effect, which suggests that across multiple domains, bottom-performers overestimate their performance, while top-performers tend to underestimate their performance. Such an effect also happens in social comparison when people judge their performance relative to others: bottom-performers overestimate their ranking in terms of performance, yet top-performers underestimate [@kruger1999unskilled; @dunning2011dunning].          
 So far, it remains unclear what contributes to this miscalibration in social comparison. To explain this miscalibration, psychologists have done extensive investigation in how people perceive (or misperceive) their absolute ability on different tasks. However, much less is known about how people perceive (or misperceive) the ability of others, which intuitively should play an important role in social comparison. In a typical survey, respondents are asked to pick the best answers for a set of multiple-choice questions, rate their confidence in each pick, and rank their performance relative to others in percentile. Oftentimes we do not have information on how respondents make specific estimations about others’ performance, which hinders our understandings of how people perceive others and how this interacts with people's biased rating in social comparison.    
        
 In the present study, we therefore collect data on people's perception of others' judgment in addition to a typical survey, and attempt to tackle the issue by first gaining some insights into how people perceive others' judgment using Bayesian statistics. We propose that when making an inference about other's performance on a specific task, people will use three sources of information, (a) their perception of their own performance on the task, (b) their perception of their overall ability relative to others, and (c) some random guessing or bias in their inference.        
-Specifically, we are interested in testing the role of a particular cognitive bias, namely the curse of knowledge, which refers to the phenomenon that when people feel knowledgeable about something, they tend to unknowingly assume that others know it too (@birch2007curse). To demonstrate, for a given individual, will she perceive higher consensus when she has higher confidence? Across individuals, will those who perceive themselves being more knowledgeable relative to others show a greater curse of knowledge by assuming a higher correlation between their own confidence and others' consensus? In other words, whether people use the self as an anchor when judging others and whether the degree that people use the self as an anchor varies as a function of their perceived their ability relative to others.  
+Specifically, we are interested in testing the role of a particular cognitive bias, namely the curse of knowledge, which refers to the phenomenon that when people feel knowledgeable about something, they tend to unknowingly assume that others know it too [@birch2007curse]. To demonstrate, for a given individual, will she perceive higher consensus when she has higher confidence? Across individuals, will those who perceive themselves being more knowledgeable relative to others show a greater curse of knowledge by assuming a higher correlation between their own confidence and others' consensus? In other words, whether people use the self as an anchor when judging others and whether the degree that people use the self as an anchor varies as a function of their perceived their ability relative to others.  
 
 ## Data
 
@@ -50,7 +52,7 @@ The first data set was generated using 18 two-alternative multiple-choice questi
 
 ## Model
 
-We borrow the idea of the item response theory to construct our models (@hambleton1991fundamentals). We assumed that for each survey item $i$, a respondent $p$'s perceived consensus (the percentage  of other people choosing the same answer as she did), denoted as $Y_pi$, is a function of the general person trait and the item trait. In our model, the person trait refers to the respondents' beliefs about their percentile ranking relative to others, denoted as $Z_p$, and their baseline beliefs on consensus given no information, denoted as $\beta_{0p}$, which might result from rational guessing (i.e. believe that by chance 25% people would choose any single option out of four options), or some general bias. The item trait refers to the respondent $p$'s confidence on their choice for each item $i$, denoted as $X_{pi}$ which provides information on how knowledgeable the respondent $p$ feels about this particular item $i$.  Following our theoretical questions, we constructed a two-level linear regression model as below:   
+We borrow the idea of the item response theory to construct our models [@hambleton1991fundamentals]. We assumed that for each survey item $i$, a respondent $p$'s perceived consensus (the percentage of other people choosing the same answer as she did), denoted as $Y_pi$, is a function of the general person trait and the item trait. In our model, the person trait refers to the respondents' beliefs about their percentile ranking relative to others, denoted as $Z_p$, and their baseline beliefs on consensus given no information, denoted as $\beta_{0p}$, which might result from rational guessing (i.e. believe that by chance 25% people would choose any single option out of four options), or some general bias. The item trait refers to the respondent $p$'s confidence on their choice for each item $i$, denoted as $X_{pi}$ which provides information on how knowledgeable the respondent $p$ feels about this particular item $i$.  Following our theoretical questions, we constructed a two-level linear regression model as below:   
 $$
 \begin{aligned}
 Level\quad 1:\; & Y_{pi} = \beta_{0p} + \beta_{1p}X_{pi} + e_{pi} \\
@@ -59,7 +61,7 @@ Level\quad 2:\; & \beta_{1p}= \alpha_0 + \alpha_1 Z_{p} + e  \\
 & e\sim N(0,\sigma^2)
 \end{aligned}
 $$
-In this model, we is conditionally independent of $Z_p$ given $\beta_{1p}$. The parameters that are of particular interest to us are he posterior $\alpha_0|\cdot$,$\alpha_1|\cdot$ and the average $\bar{\beta}_{1p}$ that can be obtained through posterior $\alpha_0|\cdot$,$\alpha_1|\cdot$. The average posterior $\bar \beta_{1p}|\cdot$ obtained across participants tells us whether on average, there is a curse of knowledge effect among our respondents, such that when they have higher confidence, or say, feel more knowledgeable on an item, they tend to perceive a higher consensus among other respondents. $\alpha_1$ tells us whether across respondents, those who perceived themselves having greater ability relative to others will be more subject to the curse of knowledge bias.
+In this model, $Y_{pi}$ is conditionally independent of $Z_p$ given $\beta_{1p}$. The parameters that are of particular interest to us are he posterior $\alpha_0|\cdot$,$\alpha_1|\cdot$ and the average $\bar{\beta}_{1p}$ that can be obtained through posterior $\alpha_0|\cdot$,$\alpha_1|\cdot$. The average posterior $\bar \beta_{1p}|\cdot$ obtained across participants tells us whether on average, there is a curse of knowledge effect among our respondents, such that when they have higher confidence, or say, feel more knowledgeable on an item, they tend to perceive a higher consensus among other respondents. $\alpha_1$ tells us whether across respondents, those who perceived themselves having greater ability relative to others will be more subject to the curse of knowledge bias.
 
 Regarding the priors, considering the range of the data, we set the priors as the follows:
 $$
@@ -86,9 +88,291 @@ p(\pmb{Y}|everything else) &= \prod_{p=1}^N \prod_{i=1}^m p(Y_{pi}|\beta_{0p},\b
 \end{aligned}
 $$
 
-With the likelihood and priors available, we then use the Metroplis-Hasting algorithm to approximate the posterior parameters. The proposal distribution $q(x,\cdot)$ is normal distribution. Since normal distribution is symmetric, we thus have $R=\frac{h(y)}{h(x)}$, where h(x) refers to the joint distribution of likelihood and priors.  
+With the likelihood and priors available, we then use the Metroplis-Hasting (MH) algorithm to approximate the posterior parameters. The proposal distribution $q(x,\cdot)$ is normal distribution. Since normal distribution is symmetric, we thus have $R=\frac{h(y)}{h(x)}$, where h(x) refers to the joint distribution of likelihood and priors.  
 
-     
+
+## Results
+
+The traceplot for the subject-level paramter, $\alpha_0$, $\alpha_1$, and $\sigma^2$ are included below for each of the three datasets (see Fig. 1-3). We ran the MH algorithm (15000 iterations) three times for each dataset. It is self-evident that the parameter estimation has converged for all the parameters in all three datasets.  
+
+```{r traceplot1, warning=FALSE, cache=TRUE}
+
+chain1_data1 <- read.csv("chain1_data1.csv")
+chain2_data1 <- read.csv("chain2_data1.csv")
+chain3_data1 <- read.csv("chain3_data1.csv")
+
+data1 <- read.csv("data1_new.csv")
+data2 <- read.csv("data2_new.csv")
+data3 <- read.csv("data3_new.csv")
+
+a1 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data1[1:15001, 1]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data1[1:15001, 1]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data1[1:15001, 1]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 0") + theme_bw()
+
+a2 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data1[1:15001, 2]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data1[1:15001, 2]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data1[1:15001, 2]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 1") + theme_bw()
+
+a3 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data1[1:15001, 3]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data1[1:15001, 3]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data1[1:15001, 3]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("sigma") + theme_bw()
+
+grid.arrange(a1, a2, a3, bottom = "Fig 1. Traceplots for dataset 1")
+
+```
+
+```{r traceplot2, warning=FALSE, cache=TRUE}
+
+chain1_data2 <- read.csv("chain1_data2.csv")
+chain2_data2 <- read.csv("chain2_data2.csv")
+chain3_data2 <- read.csv("chain3_data2.csv")
+
+b1 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data2[1:15001, 1]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data2[1:15001, 1]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data2[1:15001, 1]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 0") + theme_bw()
+
+b2 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data2[1:15001, 2]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data2[1:15001, 2]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data2[1:15001, 2]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 1") + theme_bw()
+
+b3 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data2[1:15001, 3]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data2[1:15001, 3]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data2[1:15001, 3]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("sigma") + theme_bw()
+
+grid.arrange(b1, b2, b3, bottom = "Fig 2. Traceplots for dataset 2")
+
+```
+
+```{r traceplot3, warning=FALSE, cache=TRUE}
+
+chain1_data3 <- read.csv("data3_1.csv")
+chain2_data3 <- read.csv("data3_2.csv")
+chain3_data3 <- read.csv("data3_3.csv")
+
+c1 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data3[1:15001, 1]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data3[1:15001, 1]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data3[1:15001, 1]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 0") + theme_bw()
+
+c2 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data3[1:15001, 2]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data3[1:15001, 2]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data3[1:15001, 2]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 1") + theme_bw()
+
+c3 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data3[1:15001, 3]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data3[1:15001, 3]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data3[1:15001, 3]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("sigma") + theme_bw()
+
+grid.arrange(c1, c2, c3, bottom = "Fig 3. Traceplots for dataset 3")
+
+```
+
+\pagebreak
+
+We also plot below the autocorrelation for the key parameters, $\alpha_0$ and $\alpha_1$, for the three datasets, which also show convincing evidence that the estimation has converged.  
+
+```{r acf 0, warning=FALSE, cache=TRUE}
+
+acf1 <- ggAcf(c(chain1_data1[seq(1001, 15001, 300), 1], 
+              chain2_data1[seq(1001, 15001, 300), 1],
+              chain3_data1[seq(1001, 15001, 300), 1]), lag.max = 20) + 
+   ggtitle("Dataset 1") + theme_bw()
+
+acf2 <- ggAcf(c(chain1_data2[seq(1001, 15001, 300), 1], 
+              chain2_data2[seq(1001, 15001, 300), 1],
+              chain3_data2[seq(1001, 15001, 300), 1]), lag.max = 20) + 
+   ggtitle("Dataset 2") + theme_bw()
+
+acf3 <- ggAcf(c(chain1_data3[seq(1001, 15001, 300), 1], 
+              chain2_data3[seq(1001, 15001, 300), 1],
+              chain3_data3[seq(1001, 15001, 300), 1]), lag.max = 20) + 
+   ggtitle("Dataset 3") + theme_bw()
+
+grid.arrange(acf1, acf2, acf3, bottom = "Fig 4. Autocorrelation plot for alpha 0")
+
+```
+
+```{r acf 1, warning=FALSE, cache=TRUE}
+
+acf1 <- ggAcf(c(chain1_data1[seq(1001, 15001, 300), 2], 
+              chain2_data1[seq(1001, 15001, 300), 2],
+              chain3_data1[seq(1001, 15001, 300), 2]), lag.max = 20) + 
+   ggtitle("Dataset 1") + theme_bw()
+
+acf2 <- ggAcf(c(chain1_data2[seq(1001, 15001, 300), 2], 
+              chain2_data2[seq(1001, 15001, 300), 2],
+              chain3_data2[seq(1001, 15001, 300), 2]), lag.max = 20) + 
+   ggtitle("Dataset 2") + theme_bw()
+
+acf3 <- ggAcf(c(chain1_data3[seq(1001, 15001, 300), 2], 
+              chain2_data3[seq(1001, 15001, 300), 2],
+              chain3_data3[seq(1001, 15001, 300), 2]), lag.max = 20) + 
+   ggtitle("Dataset 3") + theme_bw()
+
+grid.arrange(acf1, acf2, acf3, bottom = "Fig 5. Autocorrelation plot for alpha 1")
+
+```
+
+\pagebreak
+
+We next examined the posterior distribution for $\alpha_0$ and $\alpha_1$, and then obtained the average $\bar{\beta}_{1p}$ from them. $\bar{\beta}_{1p}$ refers to across subjects, how much people use the self to infer others' performance. $\alpha_1$ indicate whether the degree that people use the self to infer others varies as a function of perceived percentile of the self, $\pmb Z_p$. We calculated $\bar{\beta}_{1p}$ by combining $\pmb Z_p$ and the posterior expectation of $\alpha_0$ and $\alpha_1$. We also plot the posterior disbribution of $\alpha_0$ and $\alpha_1$ for each of the datasets below.  
+
+```{r posterior, warning=FALSE, cache=TRUE}
+post_alpha1_d1 <- c(chain1_data1[seq(1001, 15001, 300), 2], 
+                    chain2_data1[seq(1001, 15001, 300), 2],
+                    chain3_data1[seq(1001, 15001, 300), 2])
+
+post_alpha1_d2 <- c(chain1_data2[seq(1001, 15001, 300), 2], 
+                    chain2_data2[seq(1001, 15001, 300), 2],
+                    chain3_data2[seq(1001, 15001, 300), 2])
+
+post_alpha1_d3 <- c(chain1_data3[seq(1001, 15001, 500), 2],
+                    chain2_data3[seq(1001, 15001, 500), 2],
+                    chain3_data3[seq(1001, 15001, 500), 2])
+
+post_alpha0_d1 <- c(chain1_data1[seq(1001, 15001, 300), 1], 
+                    chain2_data1[seq(1001, 15001, 300), 1],
+                    chain3_data1[seq(1001, 15001, 300), 1])
+
+post_alpha0_d2 <- c(chain1_data2[seq(1001, 15001, 300), 1], 
+                    chain2_data2[seq(1001, 15001, 300), 1],
+                    chain3_data2[seq(1001, 15001, 300), 1])
+
+post_alpha0_d3 <- c(chain1_data3[seq(1001, 15001, 500), 1], 
+                   chain2_data3[seq(1001, 15001, 500), 1],
+                   chain3_data3[seq(1001, 15001, 500), 1])
+
+Z1 <- mean(data1[data1$Q == 1, "Percentile"])
+Z2 <- mean(data2[data2$Q == 1, "Percentile"])
+Z3 <- mean(data3[data3$Q == 1, "Percentile"])
+
+post_beta_d1 <- mean(post_alpha0_d1) + mean(post_alpha1_d1) * Z1
+post_beta_d2 <- mean(post_alpha0_d2) + mean(post_alpha1_d2) * Z2
+post_beta_d3 <- mean(post_alpha0_d3) + mean(post_alpha1_d3) * Z3
+
+
+alpha1_CI_d1 <- quantile(post_alpha1_d1, prob = c(0.025, 0.975))
+
+alpha1_CI_d2 <- quantile(post_alpha1_d2, prob = c(0.025, 0.975))
+
+alpha1_CI_d3 <- quantile(post_alpha1_d3, prob = c(0.025, 0.975))
+
+d1_a1 <- ggplot(data.frame(post_alpha1_d1), aes(x = post_alpha1_d1)) +
+  geom_density() +
+  geom_vline(xintercept = alpha1_CI_d1[1], linetype="dashed", 
+                color = "blue", size=1) +
+  geom_vline(xintercept = alpha1_CI_d1[2], linetype="dashed", 
+                color = "blue", size=1) +
+  xlab("Dataset1") + theme_bw()
+
+d2_a1 <- ggplot(data.frame(post_alpha1_d2), aes(x = post_alpha1_d2)) +
+  geom_density() +
+  geom_vline(xintercept = alpha1_CI_d2[1], linetype="dashed", 
+                color = "blue", size=1) +
+  geom_vline(xintercept = alpha1_CI_d2[2], linetype="dashed", 
+                color = "blue", size=1) +
+  xlab("Dataset2") + theme_bw()
+
+d3_a1 <- ggplot(data.frame(post_alpha1_d3), aes(x = post_alpha1_d3)) +
+  geom_density() +
+  geom_vline(xintercept = alpha1_CI_d3[1], linetype="dashed", 
+                color = "blue", size=1) +
+  geom_vline(xintercept = alpha1_CI_d3[2], linetype="dashed", 
+                color = "blue", size=1) +
+  xlab("Dataset3") + theme_bw()
+
+
+
+alpha0_CI_d1 <- quantile(post_alpha0_d1, prob = c(0.025, 0.975))
+
+alpha0_CI_d2 <- quantile(post_alpha0_d2, prob = c(0.025, 0.975))
+
+alpha0_CI_d3 <- quantile(post_alpha0_d3, prob = c(0.025, 0.975))
+
+d1_a0 <- ggplot(data.frame(post_alpha0_d1), aes(x = post_alpha0_d1)) +
+  geom_density() +
+  geom_vline(xintercept = alpha0_CI_d1[1], linetype="dashed", 
+                color = "blue", size=1) +
+  geom_vline(xintercept = alpha0_CI_d1[2], linetype="dashed", 
+                color = "blue", size=1) +
+  xlab("Dataset1") + theme_bw()
+
+d2_a0 <- ggplot(data.frame(post_alpha0_d2), aes(x = post_alpha0_d2)) +
+  geom_density() +
+  geom_vline(xintercept = alpha0_CI_d2[1], linetype="dashed", 
+                color = "blue", size=1) +
+  geom_vline(xintercept = alpha0_CI_d2[2], linetype="dashed", 
+                color = "blue", size=1) +
+  xlab("Dataset2") + theme_bw()
+
+d3_a0 <- ggplot(data.frame(post_alpha0_d3), aes(x = post_alpha0_d3)) +
+  geom_density() +
+  geom_vline(xintercept = alpha0_CI_d3[1], linetype="dashed", 
+                color = "blue", size=1) +
+  geom_vline(xintercept = alpha0_CI_d3[2], linetype="dashed", 
+                color = "blue", size=1) +
+  xlab("Dataset3") + theme_bw()
+
+grid.arrange(d1_a0, d2_a0, d3_a0, 
+             #bottom = "Fig 5. Posterior distribution of alpha 0",
+             bottom = "Posterior distribution of alpha 0",
+             ncol = 3)
+
+grid.arrange(d1_a1, d2_a1, d3_a1, 
+             #bottom = "Fig 6. Posterior distribution of alpha 1", 
+             bottom = "Posterior distribution of alpha 1", 
+             ncol = 3)
+
+
+
+```
+
+The 95% CI for $\alpha_0$ for the three datasets were [`r alpha0_CI_d1[1]`, `r alpha0_CI_d1[2]`], [`r alpha0_CI_d2[1]`, `r alpha0_CI_d2[2]`], and [`r alpha0_CI_d3[1]`, `r alpha0_CI_d3[2]`], respectively. The 95% CI for $\alpha_1$ for the three datasets were [`r alpha1_CI_d1[1]`, `r alpha1_CI_d1[2]`], [`r alpha1_CI_d2[1]`, `r alpha1_CI_d2[2]`], and [`r alpha1_CI_d3[1]`, `r alpha1_CI_d3[2]`], respectively. Lastly, $\bar{\beta}_{1p}$ for the three datasets were `r post_beta_d1`, `r post_beta_d2`, `r post_beta_d3`, respectively.  
+
+
 ## Discussion
 In summary, we confirmed hypothesis on curse of knowledge on individual level, such that on average for a given individual, the more knowledgeable she feels about an item, the more consensus she perceived among others. However, across individuals, the curse of knowledge bias will not increase with their perceived ability relative to others. Despite the difference in people's perceived ability in social comparison, they basically use the self as an anchor to their judgment about others to a similar degree. There is no metacognitive difference in people's perception of others' performance. 
 

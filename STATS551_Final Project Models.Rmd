@@ -73,7 +73,7 @@ likelihood = function(param,data,SampleSize){
   # predicted beta for all subjects
   pred_beta = alpha0+alpha1*data[data$Q ==1, "Percentile"] # predicted beta for p from level 2.
   # beta_p likelihood
-  likelihood_beta = dnorm(beta,mean=pred_beta,sd=sda, log=T)
+  likelihood_beta = suppressWarnings(dnorm(beta,mean=pred_beta,sd=sda, log=T))
   # initialize each person p's likelihood
   likelihood_p <- rep(NA,SampleSize)
   # y_p likelihood
@@ -81,7 +81,7 @@ likelihood = function(param,data,SampleSize){
     data.sub = data[which(data$Subject==p),] # single subject p's data 
     pred_pi = baseline[p] + beta[p]*data.sub$Self # predicted Y_pi, a vector
     # Y_pi likelihood
-    likelihood_pi = dnorm(data.sub$Other, mean = pred_pi, sd=sdb[p], log=T) # a vector
+    likelihood_pi = suppressWarnings(dnorm(data.sub$Other, mean = pred_pi, sd=sdb[p], log=T)) # a vector
     # Y_p likelihood: across items and across two levels
     likelihood_p[p] = sum(likelihood_pi) # sum(log) = log(product of p(y))
   }
@@ -125,9 +125,9 @@ proposalfunction = function(param,SampleSize, steps_fix){
     return(rnorm(3+3*SampleSize, 
                  mean = param, 
                  sd= c(steps_fix[1], steps_fix[2], steps_fix[3],
-                       rep(0.0045,SampleSize),
-                       rep(0.0045,SampleSize),
-                       rep(0.004,SampleSize))))
+                       rep(0.002,SampleSize),
+                       rep(0.002,SampleSize),
+                       rep(0.002,SampleSize))))
 }
  
 run_metropolis_MCMC = function(startvalue, iterations, data, SampleSize, option, steps_fix){
@@ -163,72 +163,59 @@ run_metropolis_MCMC = function(startvalue, iterations, data, SampleSize, option,
 ```{r}
 # run MCMC model
 
-data1 <- read.csv('dataset1.csv')
-data2 <- read.csv('dataset2.csv')
-data3 <- read.csv('dataset3.csv')
+data1 <- read.csv('data1_new.csv')
+data2 <- read.csv('data2_new.csv')
+data3 <- read.csv('data3_new.csv')
 
 n1 <- nrow(data1[data1$Q==1, ])
 n2 <- nrow(data2[data2$Q==1, ])
 n3 <- nrow(data3[data3$Q==1, ])
 startvalue1 = c(0.5,0.5,0.1,rep(0,n1),rep(0.2,n1),rep(0.2,n1))
 startvalue2 = c(0.5,0.5,0.1,rep(0,n2),rep(0.2,n2),rep(0.2,n2))
-startvalue3 = c(0.5,0.5,0.1,rep(0,n3),rep(0.2,n3),rep(0.2,n3))
-steps_fix_1 <- c(0.01,0.01,0.005)
-steps_fix_2 <- c(0.008, 0.008, 0.005)
-steps_fix_3 <- c(0.005, 0.005, 0.004)
+startvalue3 = c(0.5,0.5,0.1,rep(0,n3),rep(0.2,n3),rep(0.2,n3)) 
+steps_fix_1 <- c(0.03, 0.03, 0.08)
+steps_fix_2 <- c(0.02, 0.02, 0.05)
+steps_fix_3 <- c(0.02, 0.02, 0.05)
 
-chain1_data1 = run_metropolis_MCMC(startvalue1, 50000, data1, n1, 2, steps_fix_1)
-write.csv(chain1_data1, "chain1_data1.csv")
+chain1_data1 = run_metropolis_MCMC(startvalue1, 15000, data1, n1, 2, steps_fix_1)
+write.csv(chain1_data1, "chain1_data1.csv", row.names = FALSE)
 chain1_data1 <- NULL
-chain2_data1 = run_metropolis_MCMC(startvalue1, 50000, data1, n1, 2, steps_fix_1)
-write.csv(chain2_data1, "chain2_data1.csv")
+chain2_data1 = run_metropolis_MCMC(startvalue1, 15000, data1, n1, 2, steps_fix_1)
+write.csv(chain2_data1, "chain2_data1.csv", row.names = FALSE)
 chain2_data1 <- NULL
-chain3_data1 = run_metropolis_MCMC(startvalue1, 50000, data1, n1, 2, steps_fix_1)
-write.csv(chain3_data1, "chain3_data1.csv")
+chain3_data1 = run_metropolis_MCMC(startvalue1, 15000, data1, n1, 2, steps_fix_1)
+write.csv(chain3_data1, "chain3_data1.csv", row.names = FALSE)
 chain3_data1 <- NULL
 
-chain1_data2  = run_metropolis_MCMC(startvalue2, 50000, data2, n2, 4, steps_fix_2)
-write.csv(chain1_data2, "chain1_data2.csv")
+
+chain1_data2  = run_metropolis_MCMC(startvalue2, 15000, data2, n2, 4, steps_fix_2)
+write.csv(chain1_data2, "chain1_data2.csv", row.names = FALSE)
 chain1_data2 <- NULL
-chain2_data2  = run_metropolis_MCMC(startvalue2, 50000, data2, n2, 4, steps_fix_2)
-write.csv(chain2_data2, "chain2_data2.csv")
+chain2_data2  = run_metropolis_MCMC(startvalue2, 15000, data2, n2, 4, steps_fix_2)
+write.csv(chain2_data2, "chain2_data2.csv", row.names = FALSE)
 chain2_data2 <- NULL
-chain3_data2  = run_metropolis_MCMC(startvalue2, 50000, data2, n2, 4, steps_fix_2)
-write.csv(chain3_data2, "chain3_data2.csv")
+chain3_data2  = run_metropolis_MCMC(startvalue2, 15000, data2, n2, 4, steps_fix_2)
+write.csv(chain3_data2, "chain3_data2.csv", row.names = FALSE)
 chain3_data2 <- NULL
 
-chain1_data3  = run_metropolis_MCMC(startvalue3, 50000, data3, n3, 4, steps_fix_3)
+
+chain1_data3  = run_metropolis_MCMC(startvalue3, 10000, data3, n3, 4, steps_fix_3.1)
 write.csv(chain1_data3, "chain1_data3.csv")
 chain1_data3 <- NULL
-chain2_data3  = run_metropolis_MCMC(startvalue3, 50000, data3, n3, 4, steps_fix_3)
+chain2_data3  = run_metropolis_MCMC(startvalue3, 10000, data3, n3, 4, steps_fix_3.1)
 write.csv(chain2_data3, "chain2_data3.csv")
 chain2_data3 <- NULL
-chain3_data3  = run_metropolis_MCMC(startvalue3, 50000, data3, n3, 4, steps_fix_3)
+chain3_data3  = run_metropolis_MCMC(startvalue3, 10000, data3, n3, 4, steps_fix_3.1)
 write.csv(chain3_data3, "chain3_data3.csv")
 chain3_data3 <- NULL
 
 
-burnIn = 1000
-
-# check acceptance to see whether it is within 20%-30%
-acceptance = 1-mean(duplicated(chain1_data2[-(1:burnIn),]))
-```
-
-```{r traceplot, warning=F}
-ggplot() +
-  geom_line(data = data.frame(x = 1:9001, y = chain1_data1[1001:10001, 3]), aes(x,y),
-                     color = "red") +
-  geom_line(data = data.frame(x = 1:9001, y = chain2_data1[1001:10001, 3]), aes(x,y),
-                     color = "blue") +
-  #geom_line(data = data.frame(x = 1:niters, y = chain3_ts[,5]), aes(x,y),
-                    # color = "green") +
-  xlab("Iterations") + ylab("p") + ggtitle("Trace plot for p") + theme_bw()
-
 ```
 
 
 
-### Model theta on Baseline
+
+### Supplementary: Model theta on Baseline as well (didn't include in the paper)
 ```{r}
 # Multilevel Model
 # Linear model: 
@@ -384,658 +371,4 @@ run_metropolis_MCMC = function(startvalue, iterations, data, SampleSize){
     return(chain)
 }
 
-```
-
-```{r}
-# run MCMC model
-startvalue = c(0.5,0.3,0.1,0.5,0.3,0.1,rep(0,SampleSize),rep(0.2,SampleSize),rep(0.2,SampleSize))
-data = comb_data
-chain = run_metropolis_MCMC(startvalue, 10000, data, SampleSize)
-burnIn = 1000
-
-# check acceptance to see whether it is within 20%-30%
-acceptance = 1-mean(duplicated(chain[-(1:burnIn),]))
-```
-
-
-
-          
-
-### Model theta on Beta(slope) as well         
-```{r}
-# Multilevel Model
-# Linear model: 
-# Level 1: Others(pi) = baseline(p) + beta(p)*Self(pi) + N(0,sdb(p)^2) 
-# Level 2: Beta(p) ~ alpha0 + alpha1*Percentile(p) + N(0,sda^2)
- 
-# Where:
-# p is participant index, i is question index 
-# Data: Others, Self & Percentile
-# parameter: 
-# person-wise parameters: baseline(p), beta(p), sdb. All 3 variables have the size of sample size. 
-# global parameters: alpha0, alpha1, sda
-
-# setting priors: (for variables after centering)
-# baseline ~ N(0,0.4^2) for every subject p
-# beta ~ N(0,0.4^2) for every subject p
-# alpha0 ~ N(0,0.4^2) # N(0,0.4^2) can nicely span [-1,1]
-# alpha1 ~ N(0,0.4^2)
-# sdb ~ beta(2,5) for each subject p
-# sda ~ beta(2,5) where beta(2,5) have the mode=0.2
-
-# together we have a total of 3+3*SampleSize parameters
-
-# param is a vector to store the parameters:
-# param[1]: alpha0;
-# param[2]: alpha1;
-# param[3]: sda
-# param[4] to param[3+SampleSize]: baseline
-# param[4+SampleSize] to param[3+2*SampleSize]: beta
-# param[4+2*SampleSize] to param[3+3*SampleSize]: sdb 
-
-# Likelihood
-# Likelihood for Level 1: p(Y_pi|everything else)=p(Y_pi|baseline_p,beta_p,sdb_p)
-# Likelihood for Level 2: p(beta_p|everything else) = p(beta_p|alpha0,alpha1,sda)
-# aggregated: p(Y|everything else) =
-# \prod_p[\prod_i[p(Y_pi|baseline_p,beta_p,sdb_p)]p(beta_p|alpha0,alpha1,sda)] 
-
-# Likelihood Function
-likelihood = function(param,data,SampleSize){
-  data=data
-  SampleSize=SampleSize
-  alpha0 = param[1]
-  alpha1 = param[2]
-  sda = param[3]
-  baseline = param[4:(SampleSize+3)] # {baseline_p} for p=1,...,SampleSize, vector
-  beta = param[(4+SampleSize):(3+2*SampleSize)] #{beta_p}, vector
-  sdb = param[(4+2*SampleSize):(3+3*SampleSize)] #{sdb_p}, vector
-  # predicted beta for all subjects
-  pred_beta = alpha0+alpha1*data[1:SampleSize,]$Percentile # predicted beta for p from level 2.
-  # beta_p likelihood
-  likelihood_beta = dnorm(beta,mean=pred_beta,sd=sda, log=T)
-  # initialize each person p's likelihood
-  likelihood_p <- rep(NA,SampleSize)
-  # y_p likelihood
-  for (p in 1:SampleSize){
-    data.sub = data[which(data$Subject==p),] # single subject p's data 
-    pred_pi = baseline[p] + beta[p]*data.sub$Self # predicted Y_pi, a vector
-    # Y_pi likelihood
-    likelihood_pi = dnorm(data.sub$Other, mean = pred_pi, sd=sdb[p], log=T) # a vector
-    # Y_p likelihood: across items and across two levels
-    likelihood_p[p] = sum(likelihood_pi) # sum(log) = log(product of p(y))
-  }
-  # return overall likelihood
-  return(sum(likelihood_p)+sum(likelihood_beta))
-}
-
-# Prior Function
-prior= function(param,SampleSize){
-  SampleSize = SampleSize
-  alpha0 = param[1]
-  alpha1 = param[2]
-  sda = param[3]
-  baseline = param[4:(SampleSize+3)]
-  beta = param[(4+SampleSize):(3+2*SampleSize)]
-  sdb = param[(4+2*SampleSize):(3+3*SampleSize)]
-  # prior
-  alpha0prior = dnorm(alpha0, mean=0, sd = 0.4, log = T)
-  alpha1prior = dnorm(alpha1, mean=0, sd = 0.4, log = T)
-  sdaprior = dbeta(sda, 2, 5, log = T)
-  baselineprior = dnorm(baseline, mean=0, sd=0.2, log = T) 
-  betaprior = dnorm(beta, mean=0, sd = 0.4, log = T) 
-  sdbprior = dbeta(sdb, 2, 5, log = T)
-  return(alpha0prior+alpha1prior+sdaprior+sum(baselineprior)+sum(betaprior)+sum(sdbprior)) 
-  # sum(log) = log(product of priors)
-}
-
-# Posterior (Joint actually)
-posterior = function(param,data,SampleSize){
-  SampleSize=SampleSize
-  data=data
-  return (likelihood(param,data,SampleSize) + prior(param,SampleSize))
-}
-
-# Metropolis-Hastings MCMC
-
-# proposal function
-# We adopted "normal random walk"
-proposalfunction = function(param,SampleSize){
-    SampleSize = SampleSize
-    return(rnorm(3+3*SampleSize, 
-                 mean = param, 
-                 sd= c(0.005,0.005,0.004,
-                       rep(0.0045,SampleSize),
-                       rep(0.0045,SampleSize),
-                       rep(0.004,SampleSize))))
-}
- 
-run_metropolis_MCMC = function(startvalue, iterations, data, SampleSize){
-    SampleSize = SampleSize
-    data=data
-    chain = array(dim = c(iterations+1,3+3*SampleSize))
-    chain[1,] = startvalue
-    for (i in 1:iterations){
-        if(i%%1000==0){
-          print(i)
-        }
-        proposal = proposalfunction(chain[i,],SampleSize)
-        R = exp(posterior(proposal,data,SampleSize) - posterior(chain[i,],data,SampleSize))
-        if(is.nan(R)){
-          # when the proposed sd is a negative number, which is conceptually impossible, 
-          # it means MCMC walk to a position that should be rejected
-          # If this happens, we will get an NaN for likelihood function and NaN for R
-          # so we set it as 0 to be rejected
-          R=0  
-        }
-        if(runif(1) < R){
-            chain[i+1,] = proposal
-        }else{
-            chain[i+1,] = chain[i,]
-        }
-    }
-    return(chain)
-}
-
-```
-
-```{r}
-# run MCMC model
-startvalue = c(0.5,0.5,0.1,rep(0,SampleSize),rep(0.2,SampleSize),rep(0.2,SampleSize))
-data = comb_data
-chain = run_metropolis_MCMC(startvalue, 10000, data, SampleSize)
-burnIn = 40000
-
-# check acceptance to see whether it is within 20%-30%
-acceptance = 1-mean(duplicated(chain[-(1:burnIn),]))
-```
-
-
-### Model theta on Baseline as well
-```{r}
-# Multilevel Model
-# Linear model: 
-# Level 1: Others(pi) = baseline(p) + beta(p)*Self(pi) + N(0,sdb(p)^2) 
-# Level 2: Beta(p) ~ alpha0 + alpha1*Percentile(p) + N(0,sda^2)
-#          baseline(p) ~ r0 + r1*Percentile(p) + N(N,sdr^2)
- 
-# Where:
-# p is participant index, i is question index 
-# Data: Others, Self & Percentile
-# parameter: 
-# person-wise parameters: baseline(p), beta(p), sdb. All 3 variables have the size of sample size. 
-# global parameters: alpha0, alpha1, sda, r0, r1, sdr
-
-# setting priors: (for variables after centering)
-# baseline ~ N(0,0.2^2) for every subject p
-# beta ~ N(0,0.4^2) for every subject p
-# alpha0 ~ N(0,0.4^2) # N(0,0.4^2) can nicely span [-1,1]
-# alpha1 ~ N(0,0.4^2)
-# r0 ~ N(0,0.4^2)
-# r1 ~ N(0,0.4^2)
-# sdb ~ beta(2,5) for each subject p
-# sda ~ beta(2,5) where beta(2,5) have the mode=0.2
-# sdr ~ beta(2,5)
-
-# together we have a total of 6+3*SampleSize parameters
-
-# param is a vector to store the parameters:
-# param[1]: alpha0;
-# param[2]: alpha1;
-# param[3]: sda
-# param[4]: r0;
-# param[5]: r1;
-# param[6]: sdr;
-# param[7] to param[6+SampleSize]: baseline
-# param[7+SampleSize] to param[6+2*SampleSize]: beta
-# param[7+2*SampleSize] to param[6+3*SampleSize]: sdb 
-
-# Likelihood
-# Likelihood Lvl 1: p(Y_pi|everything else)=p(Y_pi|baseline_p,beta_p,sdb_p,Self)
-# Likelihood Lvl 2: p(beta_p|everything else)= p(beta_p|alpha0,alpha1,sda,Percentile)
-#                   p(baseline_p|everything else) = p(beta_p|alpha0,alpha1,sda,Percentile)
-# aggregated: p(Y|everything else) =
-# \prod_p[\prod_i[p(Y_pi|baseline_p,beta_p,sdb_p)]p(beta_p|alpha0,alpha1,sda)p(baseline_p|r0,r1,sdr)] 
-
-# Likelihood Function
-likelihood = function(param,data,SampleSize){
-  data=data
-  SampleSize=SampleSize
-  alpha0 = param[1]
-  alpha1 = param[2]
-  sda = param[3]
-  r0 = param[4]
-  r1 = param[5]
-  sdr = param[6]
-  baseline = param[7:(SampleSize+6)] # {baseline_p} for p=1,...,SampleSize, vector
-  beta = param[(7+SampleSize):(6+2*SampleSize)] #{beta_p}, vector
-  sdb = param[(7+2*SampleSize):(6+3*SampleSize)] #{sdb_p}, vector
-  # predicted baseline for all subjects
-  pred_baseline = r0+r1*data[1:SampleSize,]$Percentile # predicted baseline for p from level 2.
-  # baseline_p likelihood
-  likelihood_baseline = dnorm(baseline,mean=pred_baseline,sd=sdr, log=T)
-  # predicted beta for all subjects
-  pred_beta = alpha0+alpha1*data[1:SampleSize,]$Percentile # predicted beta for p from level 2.
-  # beta_p likelihood
-  likelihood_beta = dnorm(beta,mean=pred_beta,sd=sda, log=T)
-  # initialize each person p's likelihood
-  likelihood_p <- rep(NA,SampleSize)
-  # y_p likelihood
-  for (p in 1:SampleSize){
-    data.sub = data[which(data$Subject==p),] # single subject p's data 
-    pred_pi = baseline[p] + beta[p]*data.sub$Self # predicted Y_pi, a vector
-    # Y_pi likelihood
-    likelihood_pi = dnorm(data.sub$Other, mean = pred_pi, sd=sdb[p], log=T) # a vector
-    # Y_p likelihood: across items and across two levels
-    likelihood_p[p] = sum(likelihood_pi) # sum(log) = log(product of p(y))
-  }
-  # return overall likelihood
-  return(sum(likelihood_p)+sum(likelihood_beta)+sum(likelihood_baseline))
-}
-
-# Prior Function
-prior= function(param,SampleSize){
-  SampleSize = SampleSize
-  alpha0 = param[1]
-  alpha1 = param[2]
-  sda = param[3]
-  r0 = param[4]
-  r1 = param[5]
-  sdr = param[6]
-  baseline = param[7:(SampleSize+6)] # {baseline_p} for p=1,...,SampleSize, vector
-  beta = param[(7+SampleSize):(6+2*SampleSize)] #{beta_p}, vector
-  sdb = param[(7+2*SampleSize):(6+3*SampleSize)] #{sdb_p}, vector
-  # prior
-  alpha0prior = dnorm(alpha0, mean=0, sd = 0.4, log = T)
-  alpha1prior = dnorm(alpha1, mean=0, sd = 0.4, log = T)
-  sdaprior = dbeta(sda, 2, 5, log = T)
-  r0prior = dnorm(alpha0, mean=0.25, sd = 0.2, log = T)
-  r1prior = dnorm(alpha0, mean=0, sd = 0.4, log = T)
-  sdrprior = dbeta(sda, 2, 5, log = T)
-  baselineprior = dnorm(baseline, mean=0, sd=0.4, log = T) 
-  betaprior = dnorm(beta, mean=0, sd = 0.4, log = T) 
-  sdbprior = dbeta(sdb, 2, 5, log = T)
-  return(alpha0prior+alpha1prior+sdaprior+r0prior+r1prior+sdrprior+sum(baselineprior)+sum(betaprior)+sum(sdbprior)) 
-  # sum(log) = log(product of priors)
-}
-
-# Posterior (Joint actually)
-posterior = function(param,data,SampleSize){
-  SampleSize=SampleSize
-  data=data
-  return (likelihood(param,data,SampleSize) + prior(param,SampleSize))
-}
-
-# Metropolis-Hastings MCMC
-
-# proposal function
-# We adopted "normal random walk"
-proposalfunction = function(param,SampleSize){
-    SampleSize = SampleSize
-    return(rnorm(6+3*SampleSize, 
-                 mean = param, 
-                 sd= c(0.005,0.005,0.004,0.005,0.005,0.004,
-                       rep(0.002,SampleSize),
-                       rep(0.002,SampleSize),
-                       rep(0.002,SampleSize))))
-}
- 
-run_metropolis_MCMC = function(startvalue, iterations, data, SampleSize){
-    SampleSize = SampleSize
-    data=data
-    chain = array(dim = c(iterations+1,6+3*SampleSize))
-    chain[1,] = startvalue
-    for (i in 1:iterations){
-        if(i%%100==0){
-          print(i)
-        }
-        proposal = proposalfunction(chain[i,],SampleSize)
-        R = exp(posterior(proposal,data,SampleSize) - posterior(chain[i,],data,SampleSize))
-        if(is.nan(R)){
-          # when the proposed sd is a negative number, which is conceptually impossible, 
-          # it means MCMC walk to a position that should be rejected
-          # If this happens, we will get an NaN for likelihood function and NaN for R
-          # so we set it as 0 to be rejected
-          R=0  
-        }
-        if(runif(1) < R){
-            chain[i+1,] = proposal
-        }else{
-            chain[i+1,] = chain[i,]
-        }
-    }
-    return(chain)
-}
-
-```
-
-```{r}
-# run MCMC model
-startvalue = c(0.5,0.3,0.1,0.5,0.3,0.1,rep(0,SampleSize),rep(0.2,SampleSize),rep(0.2,SampleSize))
-data = comb_data
-chain = run_metropolis_MCMC(startvalue, 10000, data, SampleSize)
-burnIn = 1000
-
-# check acceptance to see whether it is within 20%-30%
-acceptance = 1-mean(duplicated(chain[-(1:burnIn),]))
-```
-
-        
-
-
-### Model theta on Beta(slope) as well         
-```{r}
-# Multilevel Model
-# Linear model: 
-# Level 1: Others(pi) = baseline(p) + beta(p)*Self(pi) + N(0,sdb(p)^2) 
-# Level 2: Beta(p) ~ alpha0 + alpha1*Percentile(p) + N(0,sda^2)
- 
-# Where:
-# p is participant index, i is question index 
-# Data: Others, Self & Percentile
-# parameter: 
-# person-wise parameters: baseline(p), beta(p), sdb. All 3 variables have the size of sample size. 
-# global parameters: alpha0, alpha1, sda
-
-# setting priors: (for variables after centering)
-# baseline ~ N(0.25,0.2^2) for every subject p
-# beta ~ N(0,0.4^2) for every subject p
-# alpha0 ~ N(0,0.4^2) # N(0,0.4^2) can nicely span [-1,1]
-# alpha1 ~ N(0,0.4^2)
-# sdb ~ beta(2,5) for each subject p
-# sda ~ beta(2,5) where beta(2,5) have the mode=0.2
-
-# together we have a total of 3+3*SampleSize parameters
-
-# param is a vector to store the parameters:
-# param[1]: alpha0;
-# param[2]: alpha1;
-# param[3]: sda
-# param[4] to param[3+SampleSize]: baseline
-# param[4+SampleSize] to param[3+2*SampleSize]: beta
-# param[4+2*SampleSize] to param[3+3*SampleSize]: sdb 
-
-# Likelihood
-# Likelihood for Level 1: p(Y_pi|everything else)=p(Y_pi|baseline_p,beta_p,sdb_p)
-# Likelihood for Level 2: p(beta_p|everything else) = p(beta_p|alpha0,alpha1,sda)
-# aggregated: p(Y|everything else) =
-# \prod_p[\prod_i[p(Y_pi|baseline_p,beta_p,sdb_p)]p(beta_p|alpha0,alpha1,sda)] 
-
-# Likelihood Function
-likelihood = function(param,data,SampleSize){
-  data=data
-  SampleSize=SampleSize
-  alpha0 = param[1]
-  alpha1 = param[2]
-  sda = param[3]
-  baseline = param[4:(SampleSize+3)] # {baseline_p} for p=1,...,SampleSize, vector
-  beta = param[(4+SampleSize):(3+2*SampleSize)] #{beta_p}, vector
-  sdb = param[(4+2*SampleSize):(3+3*SampleSize)] #{sdb_p}, vector
-  # predicted beta for all subjects
-  pred_beta = alpha0+alpha1*data[1:SampleSize,]$Percentile # predicted beta for p from level 2.
-  # beta_p likelihood
-  likelihood_beta = dnorm(beta,mean=pred_beta,sd=sda, log=T)
-  # initialize each person p's likelihood
-  likelihood_p <- rep(NA,SampleSize)
-  # y_p likelihood
-  for (p in 1:SampleSize){
-    data.sub = data[which(data$Subject==p),] # single subject p's data 
-    pred_pi = baseline[p] + beta[p]*data.sub$Self # predicted Y_pi, a vector
-    # Y_pi likelihood
-    likelihood_pi = dnorm(data.sub$Other, mean = pred_pi, sd=sdb[p], log=T) # a vector
-    # Y_p likelihood: across items and across two levels
-    likelihood_p[p] = sum(likelihood_pi) # sum(log) = log(product of p(y))
-  }
-  # return overall likelihood
-  return(sum(likelihood_p)+sum(likelihood_beta))
-}
-
-# Prior Function
-prior= function(param,SampleSize){
-  SampleSize = SampleSize
-  alpha0 = param[1]
-  alpha1 = param[2]
-  sda = param[3]
-  baseline = param[4:(SampleSize+3)]
-  beta = param[(4+SampleSize):(3+2*SampleSize)]
-  sdb = param[(4+2*SampleSize):(3+3*SampleSize)]
-  # prior
-  alpha0prior = dnorm(alpha0, mean=0, sd = 0.4, log = T)
-  alpha1prior = dnorm(alpha1, mean=0, sd = 0.4, log = T)
-  sdaprior = dbeta(sda, 2, 5, log = T)
-  baselineprior = dnorm(baseline, mean=0.25, sd=0.2, log = T) 
-  betaprior = dnorm(beta, mean=0, sd = 0.4, log = T) 
-  sdbprior = dbeta(sdb, 2, 5, log = T)
-  return(alpha0prior+alpha1prior+sdaprior+sum(baselineprior)+sum(betaprior)+sum(sdbprior)) 
-  # sum(log) = log(product of priors)
-}
-
-# Posterior (Joint actually)
-posterior = function(param,data,SampleSize){
-  SampleSize=SampleSize
-  data=data
-  return (likelihood(param,data,SampleSize) + prior(param,SampleSize))
-}
-
-# Metropolis-Hastings MCMC
-
-# proposal function
-# We adopted "normal random walk"
-proposalfunction = function(param,SampleSize){
-    SampleSize = SampleSize
-    return(rnorm(3+3*SampleSize, 
-                 mean = param, 
-                 sd= c(0.005,0.005,0.004,
-                       rep(0.0045,SampleSize),
-                       rep(0.0045,SampleSize),
-                       rep(0.004,SampleSize))))
-}
- 
-run_metropolis_MCMC = function(startvalue, iterations, data, SampleSize){
-    SampleSize = SampleSize
-    data=data
-    chain = array(dim = c(iterations+1,3+3*SampleSize))
-    chain[1,] = startvalue
-    for (i in 1:iterations){
-        if(i%%1000==0){
-          print(i)
-        }
-        proposal = proposalfunction(chain[i,],SampleSize)
-        R = exp(posterior(proposal,data,SampleSize) - posterior(chain[i,],data,SampleSize))
-        if(is.nan(R)){
-          # when the proposed sd is a negative number, which is conceptually impossible, 
-          # it means MCMC walk to a position that should be rejected
-          # If this happens, we will get an NaN for likelihood function and NaN for R
-          # so we set it as 0 to be rejected
-          R=0  
-        }
-        if(runif(1) < R){
-            chain[i+1,] = proposal
-        }else{
-            chain[i+1,] = chain[i,]
-        }
-    }
-    return(chain)
-}
-
-```
-
-```{r}
-# run MCMC model
-startvalue = c(0.5,0.5,0.1,rep(0,SampleSize),rep(0.2,SampleSize),rep(0.2,SampleSize))
-data = comb_data
-chain = run_metropolis_MCMC(startvalue, 10000, data, SampleSize)
-burnIn = 40000
-
-# check acceptance to see whether it is within 20%-30%
-acceptance = 1-mean(duplicated(chain[-(1:burnIn),]))
-```
-
-
-### Model theta on Baseline as well
-```{r}
-# Multilevel Model
-# Linear model: 
-# Level 1: Others(pi) = baseline(p) + beta(p)*Self(pi) + N(0,sdb(p)^2) 
-# Level 2: Beta(p) ~ alpha0 + alpha1*Percentile(p) + N(0,sda^2)
-#          baseline(p) ~ r0 + r1*Percentile(p) + N(N,sdr^2)
- 
-# Where:
-# p is participant index, i is question index 
-# Data: Others, Self & Percentile
-# parameter: 
-# person-wise parameters: baseline(p), beta(p), sdb. All 3 variables have the size of sample size. 
-# global parameters: alpha0, alpha1, sda, r0, r1, sdr
-
-# setting priors: (for variables after centering)
-# baseline ~ N(0.25,0.2^2) for every subject p
-# beta ~ N(0,0.4^2) for every subject p
-# alpha0 ~ N(0,0.4^2) # N(0,0.4^2) can nicely span [-1,1]
-# alpha1 ~ N(0,0.4^2)
-# r0 ~ N(0,0.4^2)
-# r1 ~ N(0,0.4^2)
-# sdb ~ beta(2,5) for each subject p
-# sda ~ beta(2,5) where beta(2,5) have the mode=0.2
-# sdr ~ beta(2,5)
-
-# together we have a total of 6+3*SampleSize parameters
-
-# param is a vector to store the parameters:
-# param[1]: alpha0;
-# param[2]: alpha1;
-# param[3]: sda
-# param[4]: r0;
-# param[5]: r1;
-# param[6]: sdr;
-# param[7] to param[6+SampleSize]: baseline
-# param[7+SampleSize] to param[6+2*SampleSize]: beta
-# param[7+2*SampleSize] to param[6+3*SampleSize]: sdb 
-
-# Likelihood
-# Likelihood Lvl 1: p(Y_pi|everything else)=p(Y_pi|baseline_p,beta_p,sdb_p,Self)
-# Likelihood Lvl 2: p(beta_p|everything else)= p(beta_p|alpha0,alpha1,sda,Percentile)
-#                   p(baseline_p|everything else) = p(beta_p|alpha0,alpha1,sda,Percentile)
-# aggregated: p(Y|everything else) =
-# \prod_p[\prod_i[p(Y_pi|baseline_p,beta_p,sdb_p)]p(beta_p|alpha0,alpha1,sda)p(baseline_p|r0,r1,sdr)] 
-
-# Likelihood Function
-likelihood = function(param,data,SampleSize){
-  data=data
-  SampleSize=SampleSize
-  alpha0 = param[1]
-  alpha1 = param[2]
-  sda = param[3]
-  r0 = param[4]
-  r1 = param[5]
-  sdr = param[6]
-  baseline = param[7:(SampleSize+6)] # {baseline_p} for p=1,...,SampleSize, vector
-  beta = param[(7+SampleSize):(6+2*SampleSize)] #{beta_p}, vector
-  sdb = param[(7+2*SampleSize):(6+3*SampleSize)] #{sdb_p}, vector
-  # predicted baseline for all subjects
-  pred_baseline = r0+r1*data[1:SampleSize,]$Percentile # predicted baseline for p from level 2.
-  # baseline_p likelihood
-  likelihood_baseline = dnorm(baseline,mean=pred_baseline,sd=sdr, log=T)
-  # predicted beta for all subjects
-  pred_beta = alpha0+alpha1*data[1:SampleSize,]$Percentile # predicted beta for p from level 2.
-  # beta_p likelihood
-  likelihood_beta = dnorm(beta,mean=pred_beta,sd=sda, log=T)
-  # initialize each person p's likelihood
-  likelihood_p <- rep(NA,SampleSize)
-  # y_p likelihood
-  for (p in 1:SampleSize){
-    data.sub = data[which(data$Subject==p),] # single subject p's data 
-    pred_pi = baseline[p] + beta[p]*data.sub$Self # predicted Y_pi, a vector
-    # Y_pi likelihood
-    likelihood_pi = dnorm(data.sub$Other, mean = pred_pi, sd=sdb[p], log=T) # a vector
-    # Y_p likelihood: across items and across two levels
-    likelihood_p[p] = sum(likelihood_pi) # sum(log) = log(product of p(y))
-  }
-  # return overall likelihood
-  return(sum(likelihood_p)+sum(likelihood_beta)+sum(likelihood_baseline))
-}
-
-# Prior Function
-prior= function(param,SampleSize){
-  SampleSize = SampleSize
-  alpha0 = param[1]
-  alpha1 = param[2]
-  sda = param[3]
-  r0 = param[4]
-  r1 = param[5]
-  sdr = param[6]
-  baseline = param[7:(SampleSize+6)] # {baseline_p} for p=1,...,SampleSize, vector
-  beta = param[(7+SampleSize):(6+2*SampleSize)] #{beta_p}, vector
-  sdb = param[(7+2*SampleSize):(6+3*SampleSize)] #{sdb_p}, vector
-  # prior
-  alpha0prior = dnorm(alpha0, mean=0, sd = 0.4, log = T)
-  alpha1prior = dnorm(alpha1, mean=0, sd = 0.4, log = T)
-  sdaprior = dbeta(sda, 2, 5, log = T)
-  r0prior = dnorm(alpha0, mean=0.25, sd = 0.2, log = T)
-  r1prior = dnorm(alpha0, mean=0, sd = 0.4, log = T)
-  sdrprior = dbeta(sda, 2, 5, log = T)
-  baselineprior = dnorm(baseline, mean=0.25, sd=0.2, log = T) 
-  betaprior = dnorm(beta, mean=0, sd = 0.4, log = T) 
-  sdbprior = dbeta(sdb, 2, 5, log = T)
-  return(alpha0prior+alpha1prior+sdaprior+r0prior+r1prior+sdrprior+sum(baselineprior)+sum(betaprior)+sum(sdbprior)) 
-  # sum(log) = log(product of priors)
-}
-
-# Posterior (Joint actually)
-posterior = function(param,data,SampleSize){
-  SampleSize=SampleSize
-  data=data
-  return (likelihood(param,data,SampleSize) + prior(param,SampleSize))
-}
-
-# Metropolis-Hastings MCMC
-
-# proposal function
-# We adopted "normal random walk"
-proposalfunction = function(param,SampleSize){
-    SampleSize = SampleSize
-    return(rnorm(6+3*SampleSize, 
-                 mean = param, 
-                 sd= c(0.005,0.005,0.004,0.005,0.005,0.004,
-                       rep(0.002,SampleSize),
-                       rep(0.002,SampleSize),
-                       rep(0.002,SampleSize))))
-}
- 
-run_metropolis_MCMC = function(startvalue, iterations, data, SampleSize){
-    SampleSize = SampleSize
-    data=data
-    chain = array(dim = c(iterations+1,6+3*SampleSize))
-    chain[1,] = startvalue
-    for (i in 1:iterations){
-        if(i%%100==0){
-          print(i)
-        }
-        proposal = proposalfunction(chain[i,],SampleSize)
-        R = exp(posterior(proposal,data,SampleSize) - posterior(chain[i,],data,SampleSize))
-        if(is.nan(R)){
-          # when the proposed sd is a negative number, which is conceptually impossible, 
-          # it means MCMC walk to a position that should be rejected
-          # If this happens, we will get an NaN for likelihood function and NaN for R
-          # so we set it as 0 to be rejected
-          R=0  
-        }
-        if(runif(1) < R){
-            chain[i+1,] = proposal
-        }else{
-            chain[i+1,] = chain[i,]
-        }
-    }
-    return(chain)
-}
-
-```
-
-```{r}
-# run MCMC model
-startvalue = c(0.5,0.3,0.1,0.5,0.3,0.1,rep(0,SampleSize),rep(0.2,SampleSize),rep(0.2,SampleSize))
-data = comb_data
-chain = run_metropolis_MCMC(startvalue, 10000, data, SampleSize)
-burnIn = 1000
-
-# check acceptance to see whether it is within 20%-30%
-acceptance = 1-mean(duplicated(chain[-(1:burnIn),]))
 ```

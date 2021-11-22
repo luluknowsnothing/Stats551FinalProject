@@ -1,0 +1,266 @@
+---
+title: "Result_final_paper"
+author: "Qinggang"
+date: "4/19/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, include = FALSE}
+library(knitr)
+library(tidyverse)
+library(foreign)
+library(gridExtra)
+library(forecast)
+```
+
+## Results
+
+The traceplot for the subject-level paramter, $\alpha_0$, $\alpha_1$, and $\sigma^2$ are included below for each of the three datasets (see Fig. 1-3). We ran the MH algorithm (15000 iterations) three times for each dataset. It is self-evident that the parameter estimation has converged for all the parameters in all three datasets.
+
+```{r traceplot1, warning=FALSE, cache=TRUE}
+
+chain1_data1 <- read.csv("chain1_data1.csv")
+chain2_data1 <- read.csv("chain2_data1.csv")
+chain3_data1 <- read.csv("chain3_data1.csv")
+
+data1 <- read.csv("data1_new.csv")
+data2 <- read.csv("data2_new.csv")
+data3 <- read.csv("data3_new.csv")
+
+a1 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data1[1:15001, 1]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data1[1:15001, 1]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data1[1:15001, 1]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 0") + theme_bw()
+
+a2 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data1[1:15001, 2]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data1[1:15001, 2]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data1[1:15001, 2]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 1") + theme_bw()
+
+a3 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data1[1:15001, 3]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data1[1:15001, 3]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data1[1:15001, 3]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("sigma") + theme_bw()
+
+grid.arrange(a1, a2, a3, bottom = "Fig 1. Traceplots for dataset 1")
+
+```
+
+```{r traceplot2, warning=FALSE, cache=TRUE}
+
+chain1_data2 <- read.csv("chain1_data2.csv")
+chain2_data2 <- read.csv("chain2_data2.csv")
+chain3_data2 <- read.csv("chain3_data2.csv")
+
+b1 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data2[1:15001, 1]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data2[1:15001, 1]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data2[1:15001, 1]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 0") + theme_bw()
+
+b2 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data2[1:15001, 2]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data2[1:15001, 2]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data2[1:15001, 2]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 1") + theme_bw()
+
+b3 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data2[1:15001, 3]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data2[1:15001, 3]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data2[1:15001, 3]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("sigma") + theme_bw()
+
+grid.arrange(b1, b2, b3, bottom = "Fig 2. Traceplots for dataset 2")
+
+```
+
+```{r traceplot3, warning=FALSE, cache=TRUE}
+
+chain1_data3 <- read.csv("data3_1.csv")
+chain2_data3 <- read.csv("data3_2.csv")
+chain3_data3 <- read.csv("data3_3.csv")
+
+c1 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data3[1:15001, 1]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data3[1:15001, 1]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data3[1:15001, 1]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 0") + theme_bw()
+
+c2 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data3[1:15001, 2]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data3[1:15001, 2]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data3[1:15001, 2]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("alpha 1") + theme_bw()
+
+c3 <- ggplot() +
+  geom_line(data = data.frame(x = 1:15001, y = chain1_data3[1:15001, 3]), aes(x,y),
+                     color = "red", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain2_data3[1:15001, 3]), aes(x,y),
+                     color = "blue", size = 0.8) +
+  geom_line(data = data.frame(x = 1:15001, y = chain3_data3[1:15001, 3]), aes(x,y),
+                     color = "green", size = 0.8) +
+  xlab("Iterations") + ylab("sigma") + theme_bw()
+
+grid.arrange(c1, c2, c3, bottom = "Fig 3. Traceplots for dataset 3")
+
+```
+
+\pagebreak
+
+We also plot below the autocorrelation for the key parameters, $\alpha_0$ and $\alpha_1$, for the three datasets, which also show convincing evidence that the estimation has converged.
+
+```{r acf 0, warning=FALSE, cache=TRUE}
+
+acf1 <- ggAcf(c(chain1_data1[seq(1001, 15001, 300), 1], 
+              chain2_data1[seq(1001, 15001, 300), 1],
+              chain3_data1[seq(1001, 15001, 300), 1]), lag.max = 20) + 
+   ggtitle("Dataset 1") + theme_bw()
+
+acf2 <- ggAcf(c(chain1_data2[seq(1001, 15001, 300), 1], 
+              chain2_data2[seq(1001, 15001, 300), 1],
+              chain3_data2[seq(1001, 15001, 300), 1]), lag.max = 20) + 
+   ggtitle("Dataset 2") + theme_bw()
+
+acf3 <- ggAcf(c(chain1_data3[seq(1001, 15001, 300), 1], 
+              chain2_data3[seq(1001, 15001, 300), 1],
+              chain3_data3[seq(1001, 15001, 300), 1]), lag.max = 20) + 
+   ggtitle("Dataset 3") + theme_bw()
+
+grid.arrange(acf1, acf2, acf3, bottom = "Fig 4. Autocorrelation plot for alpha 0")
+
+```
+
+```{r acf 1, warning=FALSE, cache=TRUE}
+
+acf1 <- ggAcf(c(chain1_data1[seq(1001, 15001, 300), 2], 
+              chain2_data1[seq(1001, 15001, 300), 2],
+              chain3_data1[seq(1001, 15001, 300), 2]), lag.max = 20) + 
+   ggtitle("Dataset 1") + theme_bw()
+
+acf2 <- ggAcf(c(chain1_data2[seq(1001, 15001, 300), 2], 
+              chain2_data2[seq(1001, 15001, 300), 2],
+              chain3_data2[seq(1001, 15001, 300), 2]), lag.max = 20) + 
+   ggtitle("Dataset 2") + theme_bw()
+
+acf3 <- ggAcf(c(chain1_data3[seq(1001, 15001, 300), 2], 
+              chain2_data3[seq(1001, 15001, 300), 2],
+              chain3_data3[seq(1001, 15001, 300), 2]), lag.max = 20) + 
+   ggtitle("Dataset 3") + theme_bw()
+
+grid.arrange(acf1, acf2, acf3, bottom = "Fig 5. Autocorrelation plot for alpha 1")
+
+```
+
+\pagebreak
+
+We next examined the posterior expectation of $\beta_{1p}$, and the posterior distribution for $\alpha_0$ and $\alpha_1$. $\beta_{1p}$ refers to across subjects, how much people use the self to infer others' performance. $\alpha_1$ indicate whether the degree that people use the self to infer others varies as a function of perceived percentile of the self, $\pmb Z_p$. We calculated the posterior expectation of $\beta_{1p}$ by combining $\pmb Z_p$ and the posterior expectation of $\alpha_0$ and $\alpha_1$. We also plot the posterior disbribution of $\alpha_0$ and $\alpha_1$ for each of the datasets below.
+
+```{r posterior, warning=FALSE, cache=TRUE}
+post_alpha1_d1 <- c(chain1_data1[seq(1001, 15001, 300), 2], 
+                    chain2_data1[seq(1001, 15001, 300), 2],
+                    chain3_data1[seq(1001, 15001, 300), 2])
+
+post_alpha1_d2 <- c(chain1_data2[seq(1001, 15001, 300), 2], 
+                    chain2_data2[seq(1001, 15001, 300), 2],
+                    chain3_data2[seq(1001, 15001, 300), 2])
+
+post_alpha1_d3 <- c(chain1_data3[seq(1001, 15001, 500), 2],
+                    chain2_data3[seq(1001, 15001, 500), 2],
+                    chain3_data3[seq(1001, 15001, 500), 2])
+
+post_alpha0_d1 <- c(chain1_data1[seq(1001, 15001, 300), 1], 
+                    chain2_data1[seq(1001, 15001, 300), 1],
+                    chain3_data1[seq(1001, 15001, 300), 1])
+
+post_alpha0_d2 <- c(chain1_data2[seq(1001, 15001, 300), 1], 
+                    chain2_data2[seq(1001, 15001, 300), 1],
+                    chain3_data2[seq(1001, 15001, 300), 1])
+
+post_alpha0_d3 <- c(chain1_data3[seq(1001, 15001, 500), 1], 
+                   chain2_data3[seq(1001, 15001, 500), 1],
+                   chain3_data3[seq(1001, 15001, 500), 1])
+
+Z1 <- mean(data1[data1$Q == 1, "Percentile"])
+Z2 <- mean(data2[data2$Q == 1, "Percentile"])
+Z3 <- mean(data3[data3$Q == 1, "Percentile"])
+
+post_beta_d1 <- mean(post_alpha0_d1) + mean(post_alpha1_d1) * Z1
+post_beta_d2 <- mean(post_alpha0_d2) + mean(post_alpha1_d2) * Z2
+post_beta_d3 <- mean(post_alpha0_d3) + mean(post_alpha1_d3) * Z3
+
+d1_a1 <- ggplot(data.frame(post_alpha1_d1), aes(x = post_alpha1_d1)) +
+  geom_density() +
+  xlab("Dataset1") + theme_bw()
+
+d2_a1 <- ggplot(data.frame(post_alpha1_d2), aes(x = post_alpha1_d2)) +
+  geom_density() +
+  xlab("Dataset2") + theme_bw()
+
+d3_a1 <- ggplot(data.frame(post_alpha1_d3), aes(x = post_alpha1_d3)) +
+  geom_density() +
+  xlab("Dataset3") + theme_bw()
+
+
+
+alpha1_CI_d1 <- quantile(post_alpha1_d1, prob = c(0.025, 0.975))
+
+alpha1_CI_d2 <- quantile(post_alpha1_d2, prob = c(0.025, 0.975))
+
+alpha1_CI_d3 <- quantile(post_alpha1_d3, prob = c(0.025, 0.975))
+
+d1_a0 <- ggplot(data.frame(post_alpha0_d1), aes(x = post_alpha0_d1)) +
+  geom_density() +
+  xlab("Dataset1") + theme_bw()
+
+d2_a0 <- ggplot(data.frame(post_alpha0_d2), aes(x = post_alpha0_d2)) +
+  geom_density() +
+  xlab("Dataset2") + theme_bw()
+
+d3_a0 <- ggplot(data.frame(post_alpha0_d3), aes(x = post_alpha0_d3)) +
+  geom_density() +
+  xlab("Dataset3") + theme_bw()
+
+grid.arrange(d1_a0, d2_a0, d3_a0, bottom = "Fig 5. Posterior distribution of alpha 0", ncol = 3)
+
+grid.arrange(d1_a1, d2_a1, d3_a1, bottom = "Fig 6. Posterior distribution of alpha 1", ncol = 3)
+
+alpha0_CI_d1 <- quantile(post_alpha0_d1, prob = c(0.025, 0.975))
+
+alpha0_CI_d2 <- quantile(post_alpha0_d2, prob = c(0.025, 0.975))
+
+alpha0_CI_d3 <- quantile(post_alpha0_d3, prob = c(0.025, 0.975))
+
+```
+
+The 95% CI for $\alpha_0$ for the three datasets were [`r alpha0_CI_d1[1]`, `r alpha0_CI_d1[2]`], [`r alpha0_CI_d2[1]`, `r alpha0_CI_d2[2]`], and [`r alpha0_CI_d3[1]`, `r alpha0_CI_d3[2]`], respectively. The 95% CI for $\alpha_1$ for the three datasets were [`r alpha1_CI_d1[1]`, `r alpha1_CI_d1[2]`], [`r alpha1_CI_d2[1]`, `r alpha1_CI_d2[2]`], and [`r alpha1_CI_d3[1]`, `r alpha1_CI_d3[2]`], respectively. Lastly, the expectation for $\pmb Z_p$ for the three datasets were `r post_beta_d1`, `r post_beta_d2`, `r post_beta_d3`, respectively.
